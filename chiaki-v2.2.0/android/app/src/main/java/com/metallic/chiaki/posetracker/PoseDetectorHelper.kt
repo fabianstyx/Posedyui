@@ -2,16 +2,17 @@
 
 package com.metallic.chiaki.posetracker
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.PointF
 import android.graphics.RectF
-import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.task.vision.detector.Detection
-import org.tensorflow.lite.task.vision.detector.ObjectDetector
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.pose.Pose
+import com.google.mlkit.vision.pose.PoseDetection
+import com.google.mlkit.vision.pose.PoseDetector
+import com.google.mlkit.vision.pose.PoseLandmark
+import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.concurrent.Executors
 import kotlin.math.hypot
-import kotlin.math.min
 
 interface PoseDetectorListener {
     fun onPoseDetected(pose: DetectedPose?)
@@ -19,27 +20,22 @@ interface PoseDetectorListener {
 }
 
 class PoseDetectorHelper(
-    private val context: Context,
     private val config: PoseTrackerConfig,
     private val listener: PoseDetectorListener
 ) {
-    private var objectDetector: ObjectDetector? = null
+    private var poseDetector: PoseDetector? = null
     private val executor = Executors.newSingleThreadExecutor()
     private var isInitialized = false
+    private var isProcessing = false
 
     fun initialize() {
         executor.execute {
             try {
-                val options = ObjectDetector.ObjectDetectorOptions.builder()
-                    .setScoreThreshold(config.confidence)
-                    .setMaxResults(5)
+                val options = PoseDetectorOptions.Builder()
+                    .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
                     .build()
 
-                objectDetector = ObjectDetector.createFromFileAndOptions(
-                    context,
-                    MODEL_FILE,
-                    options
-                )
+                poseDetector = PoseDetection.getClient(options)
                 isInitialized = true
             } catch (e: Exception) {
                 listener.onError("Failed to initialize pose detector: ${e.message}")
@@ -48,7 +44,8 @@ class PoseDetectorHelper(
     }
 
     fun detectPose(bitmap: Bitmap, videoRect: RectF) {
-        if (!isInitialized || objectDetector == null) return
+        if (!isInitialized || poseDetector == null || isProcessing) return
+        isProcessing = true
 
         executor.execute {
             try {
@@ -58,13 +55,21 @@ class PoseDetectorHelper(
                     bitmap
                 }
 
-                val tensorImage = TensorImage.fromBitmap(maskedBitmap)
-                val results = objectDetector?.detect(tensorImage)
-
-                val bestPose = findBestFocusPoint(results, bitmap, videoRect)
-                listener.onPoseDetected(bestPose)
+                val inputImage = InputImage.fromBitmap(maskedBitmap, 0)
+                
+                poseDetector?.process(inputImage)
+                    ?.addOnSuccessListener { pose ->
+                        val bestPose = findBestFocusPoint(pose, bitmap, videoRect)
+                        listener.onPoseDetected(bestPose)
+                        isProcessing = false
+                    }
+                    ?.addOnFailureListener { e ->
+                        listener.onError("Pose detection error: ${e.message}")
+                        isProcessing = false
+                    }
             } catch (e: Exception) {
                 listener.onError("Pose detection error: ${e.message}")
+                isProcessing = false
             }
         }
     }
@@ -89,64 +94,72 @@ class PoseDetectorHelper(
     }
 
     private fun findBestFocusPoint(
-        detections: List<Detection>?,
+        pose: Pose,
         bitmap: Bitmap,
         videoRect: RectF
     ): DetectedPose? {
-        if (detections.isNullOrEmpty()) return null
+        val landmarks = pose.allPoseLandmarks
+        if (landmarks.isEmpty()) return null
 
         val centerX = videoRect.centerX()
         val centerY = videoRect.centerY()
-        var bestPose: DetectedPose? = null
-        var minDistance = Float.MAX_VALUE
 
-        for (detection in detections) {
-            if (detection.categories.isEmpty()) continue
-            
-            val category = detection.categories[0]
-            if (category.score < config.confidence) continue
-            if (category.label != "person") continue
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+        var validLandmarks = 0
 
-            val box = detection.boundingBox
-            
-            val scaleX = videoRect.width() / bitmap.width
-            val scaleY = videoRect.height() / bitmap.height
+        val scaleX = videoRect.width() / bitmap.width
+        val scaleY = videoRect.height() / bitmap.height
 
-            val screenBox = RectF(
-                videoRect.left + box.left * scaleX,
-                videoRect.top + box.top * scaleY,
-                videoRect.left + box.right * scaleX,
-                videoRect.top + box.bottom * scaleY
-            )
-
-            val focusX = screenBox.centerX()
-            val focusY = screenBox.top + screenBox.height() / 14f
-
-            val distance = hypot(focusX - centerX, focusY - centerY)
-
-            if (distance < config.fovRadius && distance < minDistance) {
-                minDistance = distance
-                bestPose = DetectedPose(
-                    boundingBox = screenBox,
-                    focusPoint = PointF(focusX, focusY),
-                    confidence = category.score
-                )
+        for (landmark in landmarks) {
+            if (landmark.inFrameLikelihood >= config.confidence) {
+                val screenX = videoRect.left + landmark.position.x * scaleX
+                val screenY = videoRect.top + landmark.position.y * scaleY
+                
+                minX = minOf(minX, screenX)
+                minY = minOf(minY, screenY)
+                maxX = maxOf(maxX, screenX)
+                maxY = maxOf(maxY, screenY)
+                validLandmarks++
             }
         }
 
-        return bestPose
+        if (validLandmarks < 5) return null
+
+        val boundingBox = RectF(minX, minY, maxX, maxY)
+        
+        val nose = pose.getPoseLandmark(PoseLandmark.NOSE)
+        val focusPoint = if (nose != null && nose.inFrameLikelihood >= config.confidence) {
+            PointF(
+                videoRect.left + nose.position.x * scaleX,
+                videoRect.top + nose.position.y * scaleY
+            )
+        } else {
+            PointF(
+                boundingBox.centerX(),
+                boundingBox.top + boundingBox.height() / 14f
+            )
+        }
+
+        val distance = hypot(focusPoint.x - centerX, focusPoint.y - centerY)
+
+        if (distance > config.fovRadius) return null
+
+        return DetectedPose(
+            boundingBox = boundingBox,
+            focusPoint = focusPoint,
+            confidence = landmarks.map { it.inFrameLikelihood }.average().toFloat()
+        )
     }
 
     fun close() {
         executor.execute {
-            objectDetector?.close()
-            objectDetector = null
+            poseDetector?.close()
+            poseDetector = null
             isInitialized = false
         }
         executor.shutdown()
-    }
-
-    companion object {
-        private const val MODEL_FILE = "movenet_singlepose_lightning.tflite"
     }
 }

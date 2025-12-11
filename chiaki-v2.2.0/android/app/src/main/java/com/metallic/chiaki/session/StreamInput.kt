@@ -40,12 +40,22 @@ class StreamInput(val context: Context, val preferences: Preferences)
                 if(motionControllerState.r2State > 0U)
                         controllerState.r2State = motionControllerState.r2State
 
+                // Apply PoseTracker right stick movement if active
+                if(poseTrackerActive && (poseTrackerControllerState.rightX != 0.toShort() || poseTrackerControllerState.rightY != 0.toShort()))
+                {
+                        controllerState.rightX = poseTrackerControllerState.rightX
+                        controllerState.rightY = poseTrackerControllerState.rightY
+                }
+
                 return controllerState or touchControllerState
         }
 
         private val sensorControllerState = ControllerState() // from Motion Sensors
         private val keyControllerState = ControllerState() // from KeyEvents
         private val motionControllerState = ControllerState() // from MotionEvents
+        private val poseTrackerControllerState = ControllerState() // from PoseTracker AI
+        private val poseTrackerSensitivity = 0.5f
+        private var poseTrackerActive = false
         var touchControllerState = ControllerState()
                 set(value)
                 {
@@ -204,17 +214,23 @@ class StreamInput(val context: Context, val preferences: Preferences)
                 return true
         }
 
-        private val poseTrackerControllerState = ControllerState()
-        private val poseTrackerSensitivity = 0.5f
-
         fun injectPoseTrackerMovement(movementX: Float, movementY: Float)
         {
+                poseTrackerActive = true
                 val scaledX = (movementX * poseTrackerSensitivity).coerceIn(-1f, 1f)
                 val scaledY = (movementY * poseTrackerSensitivity).coerceIn(-1f, 1f)
 
                 poseTrackerControllerState.rightX = (scaledX * Short.MAX_VALUE).toInt().toShort()
                 poseTrackerControllerState.rightY = (scaledY * Short.MAX_VALUE).toInt().toShort()
 
+                controllerStateUpdated()
+        }
+
+        fun resetPoseTrackerMovement()
+        {
+                poseTrackerActive = false
+                poseTrackerControllerState.rightX = 0
+                poseTrackerControllerState.rightY = 0
                 controllerStateUpdated()
         }
 }

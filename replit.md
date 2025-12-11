@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is **Chiaki v2.2.0** - a PlayStation Remote Play client for Android, modified with **PoseTracker AI** integration for pose detection and aim assistance.
+This is **Chiaki v2.2.0** - a PlayStation Remote Play client for Android, modified with **PoseTracker AI** integration for pose detection and aim assistance using Google ML Kit.
 
 **Important**: This is an Android APK project that builds on **GitHub Actions**, not on Replit. Replit is used here for code editing only.
 
@@ -36,13 +36,17 @@ chiaki-v2.2.0/
 │   ├── app/
 │   │   ├── src/main/
 │   │   │   ├── java/com/metallic/chiaki/
-│   │   │   │   ├── posetracker/    # NEW: PoseTracker integration
-│   │   │   │   ├── stream/         # Streaming activity
-│   │   │   │   ├── session/        # Session management
+│   │   │   │   ├── posetracker/    # PoseTracker integration
+│   │   │   │   │   ├── PoseTrackerConfig.kt
+│   │   │   │   │   ├── PoseTrackerOverlayView.kt
+│   │   │   │   │   ├── PoseDetectorHelper.kt
+│   │   │   │   │   └── PoseTrackerManager.kt
+│   │   │   │   ├── stream/         # Streaming activity (modified)
+│   │   │   │   ├── session/        # Session management (modified)
 │   │   │   │   └── ...
 │   │   │   ├── cpp/                # Native C/C++ code
 │   │   │   └── res/                # Android resources
-│   │   └── build.gradle
+│   │   └── build.gradle            # Dependencies added
 │   └── build.gradle
 ├── lib/                        # Core Chiaki library (C)
 ├── gui/                        # Qt GUI (not used for Android)
@@ -51,56 +55,73 @@ chiaki-v2.2.0/
 
 ## PoseTracker Integration
 
-### New Files Added
+### New Files Added (4 files)
 
-- `posetracker/PoseTrackerConfig.kt` - Configuration data class
-- `posetracker/PoseTrackerOverlayView.kt` - Visual overlay for detection display
-- `posetracker/PoseDetectorHelper.kt` - TensorFlow Lite pose detection
-- `posetracker/PoseTrackerManager.kt` - Main manager class
+| File | Description |
+|------|-------------|
+| `PoseTrackerConfig.kt` | Configuration data class with confidence, FOV radius, mask settings |
+| `PoseTrackerOverlayView.kt` | Custom View for drawing detection boxes and focus circle |
+| `PoseDetectorHelper.kt` | Google ML Kit pose detection wrapper |
+| `PoseTrackerManager.kt` | Main manager coordinating detection and input injection |
 
 ### Modified Files
 
-- `app/build.gradle` - Added TensorFlow Lite dependencies
-- `stream/StreamActivity.kt` - Integrated PoseTracker initialization
-- `session/StreamInput.kt` - Added pose tracker movement injection
-- `res/layout/activity_stream.xml` - Added overlay and toggle button
+- `app/build.gradle` - Added ML Kit Pose Detection dependencies
+- `stream/StreamActivity.kt` - Integrated PoseTracker initialization and toggle button
+- `session/StreamInput.kt` - Added pose tracker movement injection to right stick
+- `res/layout/activity_stream.xml` - Added overlay view and toggle button
 - `res/values/strings.xml` - Added PoseTracker strings
-- `res/xml/preferences.xml` - Added PoseTracker settings
+- `res/xml/preferences.xml` - Added PoseTracker settings category
 - `common/Preferences.kt` - Added PoseTracker preferences
-- `proguard-rules.pro` - Added TensorFlow Lite rules
+- `proguard-rules.pro` - Added ML Kit ProGuard rules
 
 ### Dependencies Added
 
 ```gradle
-implementation 'org.tensorflow:tensorflow-lite:2.14.0'
-implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
-implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
-implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.4'
+implementation 'com.google.mlkit:pose-detection:18.0.0-beta3'
+implementation 'com.google.mlkit:pose-detection-accurate:18.0.0-beta3'
 ```
-
-### Usage
-
-1. Enable PoseTracker in Settings → PoseTracker AI
-2. During streaming, tap the robot icon to toggle tracking
-3. The AI will detect human poses and assist with aiming
 
 ## Configuration Options
 
-- **Detection Confidence**: 0.28 (default)
-- **FOV Radius**: 300px (focus area)
-- **Visual Assist**: Show/hide detection boxes
-- **Mask Area**: Ignore HUD regions
+| Option | Default | Description |
+|--------|---------|-------------|
+| Confidence | 0.28 | Minimum detection confidence |
+| FOV Radius | 300px | Focus area around screen center |
+| Visual Assist | true | Show detection boxes |
+| Mask Enabled | true | Ignore HUD regions |
 
-## Technical Notes
+### Mask Area (for ignoring HUD)
+- X: 0.0, Y: 0.27
+- Width: 0.43, Height: 0.74
 
-- Uses TensorFlow Lite MoveNet for pose detection
-- Overlay renders on top of the video stream
-- Movement is injected via right stick emulation
-- Feature is gated behind settings preference
+## Usage
+
+1. **Enable in Settings**: Settings → PoseTracker AI → Enable
+2. **Toggle during gameplay**: Tap the robot icon (top-right) to activate/deactivate
+3. **Visual feedback**: Red boxes show detected poses, white circle shows focus area
+
+## Technical Implementation
+
+### Pose Detection Flow
+1. ML Kit processes video frames in background thread
+2. Detected poses are filtered by confidence and FOV radius
+3. Best target (closest to center within FOV) is selected
+4. Focus point (nose or head estimate) determines aim direction
+5. Movement delta is calculated and injected to right stick
+
+### Input Injection
+- Movement is applied to `poseTrackerControllerState`
+- Right stick values are updated based on distance from center
+- Sensitivity factor (0.5) controls movement speed
+- Active flag ensures clean state when disabled
 
 ## Recent Changes
 
-- 2024: Added PoseTracker AI integration using TensorFlow Lite
+- 2024-12: Integrated PoseTracker AI using Google ML Kit
+- Uses ML Kit Pose Detection (STREAM_MODE for real-time)
+- Proper state management with active flag
+- Clean reset when tracking disabled
 - Original Chiaki v2.2.0 codebase preserved
 
 ## User Preferences

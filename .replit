@@ -1,6 +1,29 @@
-modules = ["c-clang14", "cpp-clang14", "bash"]
+modules = ["c-clang14", "cpp-clang14", "bash", "python-3.11"]
 [agent]
 expertMode = true
 
 [nix]
 channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Build Info"
+
+[[workflows.workflow]]
+name = "Build Info"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python build_info.py"
+
+[workflows.workflow.metadata]
+outputType = "console"

@@ -129,7 +129,7 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
                 if(preferences.poseTrackerEnabled)
                 {
                         val overlayView = binding.poseTrackerOverlay
-                        poseTrackerManager = PoseTrackerManager(this, overlayView) { movementX, movementY ->
+                        poseTrackerManager = PoseTrackerManager(overlayView) { movementX, movementY ->
                                 viewModel.input.injectPoseTrackerMovement(movementX, movementY)
                         }
                         poseTrackerManager?.initialize()
@@ -143,6 +143,9 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
                         binding.poseTrackerToggleButton.setOnClickListener {
                                 val isActive = poseTrackerManager?.toggleTracking() ?: false
                                 binding.poseTrackerToggleButton.alpha = if(isActive) 1.0f else 0.6f
+                                if(!isActive) {
+                                        viewModel.input.resetPoseTrackerMovement()
+                                }
                         }
                 }
         }

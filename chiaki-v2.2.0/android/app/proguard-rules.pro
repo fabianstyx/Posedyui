@@ -24,11 +24,11 @@
 -keep class com.metallic.chiaki.** { *; }
 
 ##########################################
-# TensorFlow Lite
+# ML Kit Pose Detection
 ##########################################
--keep class org.tensorflow.** { *; }
--keepclassmembers class org.tensorflow.** { *; }
--dontwarn org.tensorflow.**
+-keep class com.google.mlkit.** { *; }
+-keepclassmembers class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
 
 
 ##########################################

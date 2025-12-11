@@ -2,16 +2,12 @@
 
 package com.metallic.chiaki.posetracker
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
-import android.view.MotionEvent
-import android.view.View
 
 class PoseTrackerManager(
-    private val context: Context,
     private val overlayView: PoseTrackerOverlayView,
     private val onCursorMove: ((Float, Float) -> Unit)? = null
 ) : PoseDetectorListener {
@@ -25,7 +21,7 @@ class PoseTrackerManager(
     private var isActive = false
 
     fun initialize() {
-        poseDetector = PoseDetectorHelper(context, config, this)
+        poseDetector = PoseDetectorHelper(config, this)
         poseDetector?.initialize()
         overlayView.setConfig(config)
     }
