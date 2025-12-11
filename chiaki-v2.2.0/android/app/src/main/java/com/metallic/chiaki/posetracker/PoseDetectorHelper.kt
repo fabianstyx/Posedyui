@@ -44,31 +44,48 @@ class PoseDetectorHelper(
     }
 
     fun detectPose(bitmap: Bitmap, videoRect: RectF) {
-        if (!isInitialized || poseDetector == null || isProcessing) return
+        if (!isInitialized || poseDetector == null || isProcessing) {
+            if (!bitmap.isRecycled) bitmap.recycle()
+            return
+        }
+        if (bitmap.isRecycled) return
         isProcessing = true
+
+        val bitmapCopy = bitmap.copy(Bitmap.Config.ARGB_8888, false)
+        bitmap.recycle()
+        
+        if (bitmapCopy == null) {
+            isProcessing = false
+            return
+        }
 
         executor.execute {
             try {
                 val maskedBitmap = if (config.maskEnabled) {
-                    applyMask(bitmap)
+                    applyMask(bitmapCopy)
                 } else {
-                    bitmap
+                    bitmapCopy
                 }
 
                 val inputImage = InputImage.fromBitmap(maskedBitmap, 0)
                 
                 poseDetector?.process(inputImage)
                     ?.addOnSuccessListener { pose ->
-                        val bestPose = findBestFocusPoint(pose, bitmap, videoRect)
+                        val bestPose = findBestFocusPoint(pose, bitmapCopy, videoRect)
                         listener.onPoseDetected(bestPose)
+                        if (maskedBitmap != bitmapCopy) maskedBitmap.recycle()
+                        bitmapCopy.recycle()
                         isProcessing = false
                     }
                     ?.addOnFailureListener { e ->
                         listener.onError("Pose detection error: ${e.message}")
+                        if (maskedBitmap != bitmapCopy) maskedBitmap.recycle()
+                        bitmapCopy.recycle()
                         isProcessing = false
                     }
             } catch (e: Exception) {
                 listener.onError("Pose detection error: ${e.message}")
+                bitmapCopy.recycle()
                 isProcessing = false
             }
         }

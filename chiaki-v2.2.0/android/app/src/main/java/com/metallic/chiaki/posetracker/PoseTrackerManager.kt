@@ -47,8 +47,13 @@ class PoseTrackerManager(
     fun isTrackingActive(): Boolean = isActive
 
     fun processFrame(bitmap: Bitmap) {
-        if (!isActive) return
-        poseDetector?.detectPose(bitmap, videoRect)
+        if (!isActive) {
+            if (!bitmap.isRecycled) bitmap.recycle()
+            return
+        }
+        poseDetector?.detectPose(bitmap, videoRect) ?: run {
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
     }
 
     override fun onPoseDetected(pose: DetectedPose?) {

@@ -42,7 +42,10 @@
         android:src="@drawable/ic_motion"
         android:contentDescription="Toggle Pose Tracker"
         android:alpha="0.6"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        android:elevation="10dp"
+        android:scaleType="centerInside"
+        android:padding="12dp"/>
 
     <fragment
         android:id="@+id/controlsFragment"

@@ -5,10 +5,13 @@ package com.metallic.chiaki.stream
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
+import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.graphics.PixelFormat
 import android.os.*
 import android.view.*
 import android.widget.EditText
+import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
@@ -32,6 +35,7 @@ import android.graphics.RectF
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
 import kotlin.math.min
+import kotlin.math.abs
 
 private sealed class DialogContents
 private object StreamQuitDialog: DialogContents()
@@ -44,11 +48,28 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
         {
                 const val EXTRA_CONNECT_INFO = "connect_info"
                 private const val HIDE_UI_TIMEOUT_MS = 2000L
+                private const val FRAME_CAPTURE_INTERVAL_MS = 100L
         }
 
         private lateinit var viewModel: StreamViewModel
         private lateinit var binding: ActivityStreamBinding
+        private lateinit var preferences: Preferences
         private var poseTrackerManager: PoseTrackerManager? = null
+        
+        private var poseTrackerHandlerThread: HandlerThread? = null
+        private var poseTrackerHandler: Handler? = null
+        private val mainHandler = Handler(Looper.getMainLooper())
+        @Volatile private var isCapturingFrames = false
+        @Volatile private var isPendingCapture = false
+        
+        private var buttonDragStartX = 0f
+        private var buttonDragStartY = 0f
+        private var buttonInitialX = 0f
+        private var buttonInitialY = 0f
+        private var isDragging = false
+        private val dragThreshold = 10f
+        
+        private var layoutListener: ViewTreeObserver.OnGlobalLayoutListener? = null
 
         private val uiVisibilityHandler = Handler()
 
@@ -125,8 +146,11 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
 
         private fun initializePoseTracker()
         {
-                val preferences = Preferences(this)
+                preferences = Preferences(this)
                 val overlayView = binding.poseTrackerOverlay
+                
+                poseTrackerHandlerThread = HandlerThread("PoseTrackerThread").apply { start() }
+                poseTrackerHandler = Handler(poseTrackerHandlerThread!!.looper)
                 
                 poseTrackerManager = PoseTrackerManager(overlayView) { movementX, movementY ->
                         viewModel.input.injectPoseTrackerMovement(movementX, movementY)
@@ -139,18 +163,161 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
                 poseTrackerManager?.updateConfig(config)
 
                 binding.poseTrackerToggleButton.visibility = View.VISIBLE
-                binding.poseTrackerToggleButton.setOnClickListener {
-                        val isActive = poseTrackerManager?.toggleTracking() ?: false
-                        binding.poseTrackerToggleButton.alpha = if(isActive) 1.0f else 0.6f
-                        if(!isActive) {
-                                viewModel.input.resetPoseTrackerMovement()
-                        }
-                }
+                setupDraggableButton()
                 
                 if(preferences.poseTrackerEnabled)
                 {
                         poseTrackerManager?.setTrackingEnabled(true)
                         binding.poseTrackerToggleButton.alpha = 1.0f
+                        startFrameCapture()
+                }
+                
+                layoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+                        updateVideoRect()
+                }
+                binding.surfaceView.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
+        }
+        
+        @Suppress("ClickableViewAccessibility")
+        private fun setupDraggableButton()
+        {
+                val button = binding.poseTrackerToggleButton
+                
+                button.setOnTouchListener { view, event ->
+                        when (event.actionMasked) {
+                                MotionEvent.ACTION_DOWN -> {
+                                        buttonDragStartX = event.rawX
+                                        buttonDragStartY = event.rawY
+                                        buttonInitialX = view.x
+                                        buttonInitialY = view.y
+                                        isDragging = false
+                                        true
+                                }
+                                MotionEvent.ACTION_MOVE -> {
+                                        val deltaX = event.rawX - buttonDragStartX
+                                        val deltaY = event.rawY - buttonDragStartY
+                                        
+                                        if (abs(deltaX) > dragThreshold || abs(deltaY) > dragThreshold) {
+                                                isDragging = true
+                                        }
+                                        
+                                        if (isDragging) {
+                                                val parent = view.parent as View
+                                                val newX = (buttonInitialX + deltaX).coerceIn(0f, (parent.width - view.width).toFloat())
+                                                val newY = (buttonInitialY + deltaY).coerceIn(0f, (parent.height - view.height).toFloat())
+                                                view.x = newX
+                                                view.y = newY
+                                                true
+                                        } else {
+                                                false
+                                        }
+                                }
+                                MotionEvent.ACTION_UP -> {
+                                        if (!isDragging) {
+                                                view.performClick()
+                                        }
+                                        isDragging = false
+                                        true
+                                }
+                                MotionEvent.ACTION_CANCEL -> {
+                                        isDragging = false
+                                        true
+                                }
+                                else -> false
+                        }
+                }
+                
+                button.setOnClickListener {
+                        togglePoseTracker()
+                }
+        }
+        
+        private fun togglePoseTracker()
+        {
+                val isActive = poseTrackerManager?.toggleTracking() ?: false
+                binding.poseTrackerToggleButton.alpha = if(isActive) 1.0f else 0.6f
+                preferences.poseTrackerEnabled = isActive
+                
+                if(isActive) {
+                        startFrameCapture()
+                } else {
+                        stopFrameCapture()
+                        viewModel.input.resetPoseTrackerMovement()
+                }
+        }
+        
+        private fun updateVideoRect()
+        {
+                val surfaceView = binding.surfaceView
+                val overlayView = binding.poseTrackerOverlay
+                
+                val surfaceLocation = IntArray(2)
+                val overlayLocation = IntArray(2)
+                surfaceView.getLocationInWindow(surfaceLocation)
+                overlayView.getLocationInWindow(overlayLocation)
+                
+                val videoRect = RectF(
+                        (surfaceLocation[0] - overlayLocation[0]).toFloat(),
+                        (surfaceLocation[1] - overlayLocation[1]).toFloat(),
+                        (surfaceLocation[0] - overlayLocation[0] + surfaceView.width).toFloat(),
+                        (surfaceLocation[1] - overlayLocation[1] + surfaceView.height).toFloat()
+                )
+                poseTrackerManager?.setVideoRect(videoRect)
+        }
+        
+        private fun startFrameCapture()
+        {
+                if (isCapturingFrames) return
+                isCapturingFrames = true
+                scheduleNextCapture()
+        }
+        
+        private fun stopFrameCapture()
+        {
+                isCapturingFrames = false
+        }
+        
+        private fun scheduleNextCapture()
+        {
+                if (!isCapturingFrames) return
+                poseTrackerHandler?.postDelayed({
+                        if (isCapturingFrames && !isPendingCapture) {
+                                captureFrame()
+                        }
+                        scheduleNextCapture()
+                }, FRAME_CAPTURE_INTERVAL_MS)
+        }
+        
+        private fun captureFrame()
+        {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+                if (isPendingCapture) return
+                
+                val surfaceView = binding.surfaceView
+                if (surfaceView.width <= 0 || surfaceView.height <= 0) return
+                
+                isPendingCapture = true
+                
+                val bitmap = Bitmap.createBitmap(surfaceView.width, surfaceView.height, Bitmap.Config.ARGB_8888)
+                
+                try {
+                        PixelCopy.request(
+                                surfaceView,
+                                bitmap,
+                                { copyResult ->
+                                        isPendingCapture = false
+                                        if (copyResult == PixelCopy.SUCCESS && isCapturingFrames) {
+                                                poseTrackerManager?.processFrame(bitmap)
+                                        } else {
+                                                bitmap.recycle()
+                                        }
+                                },
+                                mainHandler
+                        )
+                } catch (e: Exception) {
+                        isPendingCapture = false
+                        bitmap.recycle()
+                        android.util.Log.e("StreamActivity", "PixelCopy failed: ${e.message}")
                 }
         }
 
@@ -175,17 +342,33 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
                 super.onResume()
                 hideSystemUI()
                 viewModel.session.resume()
+                if (poseTrackerManager?.isTrackingActive() == true) {
+                        startFrameCapture()
+                }
         }
 
         override fun onPause()
         {
                 super.onPause()
+                stopFrameCapture()
                 viewModel.session.pause()
         }
 
         override fun onDestroy()
         {
                 super.onDestroy()
+                stopFrameCapture()
+                
+                layoutListener?.let {
+                        binding.surfaceView.viewTreeObserver.removeOnGlobalLayoutListener(it)
+                }
+                layoutListener = null
+                
+                poseTrackerHandler?.removeCallbacksAndMessages(null)
+                poseTrackerHandlerThread?.quitSafely()
+                poseTrackerHandlerThread = null
+                poseTrackerHandler = null
+                
                 controlsDisposable.dispose()
                 poseTrackerManager?.release()
                 poseTrackerManager = null
