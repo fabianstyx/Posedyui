@@ -118,10 +118,14 @@ implementation 'com.google.mlkit:pose-detection-accurate:18.0.0-beta3'
 
 ## Recent Changes
 
-- 2024-12: Integrated PoseTracker AI using Google ML Kit
-- Uses ML Kit Pose Detection (STREAM_MODE for real-time)
-- Proper state management with active flag
-- Clean reset when tracking disabled
+- 2024-12: Initial PoseTracker AI integration using Google ML Kit
+- 2024-12: Fixed frame capture - implemented PixelCopy for video frame extraction
+- 2024-12: Fixed video rect coordinates - uses overlay-local coordinates via getLocationInWindow
+- 2024-12: Fixed bitmap lifecycle - copy before processing, proper ownership transfer and recycling
+- 2024-12: Fixed thread safety - dedicated HandlerThread for pose processing
+- 2024-12: Made toggle button draggable with position persistence
+- 2024-12: Added preference persistence for PoseTracker toggle state
+- 2024-12: Fixed memory leaks - proper cleanup of layout listeners, handlers, and callbacks
 - Original Chiaki v2.2.0 codebase preserved
 
 ## User Preferences
