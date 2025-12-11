@@ -119,4 +119,17 @@
     <string name="preferences_fps_key">stream_fps</string>
     <string name="preferences_bitrate_key">stream_bitrate</string>
     <string name="preferences_codec_key">stream_codec</string>
+
+    <!-- PoseTracker strings -->
+    <string name="preferences_pose_tracker_enabled_key">pose_tracker_enabled</string>
+    <string name="preferences_pose_tracker_enabled_title">PoseTracker AI</string>
+    <string name="preferences_pose_tracker_enabled_summary">Enable AI-powered pose tracking for aim assistance</string>
+    <string name="preferences_pose_tracker_visual_assist_key">pose_tracker_visual_assist</string>
+    <string name="preferences_pose_tracker_visual_assist_title">Visual Assist</string>
+    <string name="preferences_pose_tracker_visual_assist_summary">Show detection boxes and focus indicators</string>
+    <string name="preferences_pose_tracker_confidence_key">pose_tracker_confidence</string>
+    <string name="preferences_pose_tracker_confidence_title">Detection Confidence</string>
+    <string name="preferences_pose_tracker_fov_key">pose_tracker_fov</string>
+    <string name="preferences_pose_tracker_fov_title">Focus Area Radius</string>
+    <string name="preferences_category_title_posetracker">PoseTracker AI</string>
 </resources>

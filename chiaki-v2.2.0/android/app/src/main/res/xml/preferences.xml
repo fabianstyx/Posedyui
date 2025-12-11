@@ -79,6 +79,23 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        app:key="category_posetracker"
+        app:title="@string/preferences_category_title_posetracker">
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_enabled_key"
+            app:title="@string/preferences_pose_tracker_enabled_title"
+            app:summary="@string/preferences_pose_tracker_enabled_summary"
+            app:icon="@drawable/ic_motion" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_visual_assist_key"
+            app:title="@string/preferences_pose_tracker_visual_assist_title"
+            app:summary="@string/preferences_pose_tracker_visual_assist_summary"
+            app:icon="@drawable/ic_motion"
+            app:dependency="@string/preferences_pose_tracker_enabled_key" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
         app:key="category_export"
         app:title="@string/preferences_category_title_export">
         <Preference

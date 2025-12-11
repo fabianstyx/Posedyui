@@ -72,7 +72,7 @@ android {
         properties.load(propertiesFile.newDataInputStream())
     }
 
-	if(properties.containsKey("chiakiKeystore")) {
+        if(properties.containsKey("chiakiKeystore")) {
         println("Enabling Local Signing")
         buildTypes.release.signingConfig = signingConfigs.release
         buildTypes.debug.signingConfig = signingConfigs.release
@@ -113,4 +113,10 @@ dependencies {
     implementation "androidx.room:room-rxjava2:$room_version"
     implementation "com.squareup.moshi:moshi:1.14.0"
     kapt "com.squareup.moshi:moshi-kotlin-codegen:1.14.0"
+
+    // TensorFlow Lite for Pose Detection (PoseTracker integration)
+    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+    implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
+    implementation 'org.tensorflow:tensorflow-lite-task-vision:0.4.4'
 }

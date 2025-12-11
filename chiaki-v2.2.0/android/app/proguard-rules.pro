@@ -23,6 +23,13 @@
 -dontobfuscate
 -keep class com.metallic.chiaki.** { *; }
 
+##########################################
+# TensorFlow Lite
+##########################################
+-keep class org.tensorflow.** { *; }
+-keepclassmembers class org.tensorflow.** { *; }
+-dontwarn org.tensorflow.**
+
 
 ##########################################
 # Moshi

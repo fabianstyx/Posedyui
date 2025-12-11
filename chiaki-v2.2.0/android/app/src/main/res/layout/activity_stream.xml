@@ -26,6 +26,24 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"/>
 
+    <com.metallic.chiaki.posetracker.PoseTrackerOverlayView
+        android:id="@+id/poseTrackerOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <ImageButton
+        android:id="@+id/poseTrackerToggleButton"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
+        android:background="@drawable/control_button_box"
+        android:src="@drawable/ic_motion"
+        android:contentDescription="Toggle Pose Tracker"
+        android:alpha="0.6"
+        android:visibility="gone"/>
+
     <fragment
         android:id="@+id/controlsFragment"
         android:name="com.metallic.chiaki.touchcontrols.DefaultTouchControlsFragment"
