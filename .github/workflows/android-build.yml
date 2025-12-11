@@ -14,8 +14,16 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
+    
+    - name: Initialize git submodules
+      working-directory: chiaki-v2.2.0
+      run: |
+        git submodule update --init --recursive
+    
+    - name: Install protobuf compiler
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y protobuf-compiler
     
     - name: Set up JDK 17
       uses: actions/setup-java@v4
