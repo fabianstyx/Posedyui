@@ -15,10 +15,24 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Initialize git submodules
-      working-directory: chiaki-v2.2.0
+    - name: Clone submodules manually
       run: |
-        git submodule update --init --recursive
+        cd chiaki-v2.2.0
+        
+        # Clone nanopb
+        git clone --depth 1 https://github.com/nanopb/nanopb.git third-party/nanopb
+        
+        # Clone jerasure
+        git clone --depth 1 https://git.sr.ht/~thestr4ng3r/jerasure third-party/jerasure
+        
+        # Clone gf-complete
+        git clone --depth 1 https://git.sr.ht/~thestr4ng3r/gf-complete third-party/gf-complete
+        
+        # Clone oboe
+        git clone --depth 1 https://github.com/google/oboe android/app/src/main/cpp/oboe
+        
+        # Clone munit (for tests)
+        git clone --depth 1 https://github.com/nemequ/munit.git test/munit
     
     - name: Install protobuf compiler
       run: |
