@@ -126,27 +126,31 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
         private fun initializePoseTracker()
         {
                 val preferences = Preferences(this)
+                val overlayView = binding.poseTrackerOverlay
+                
+                poseTrackerManager = PoseTrackerManager(overlayView) { movementX, movementY ->
+                        viewModel.input.injectPoseTrackerMovement(movementX, movementY)
+                }
+                poseTrackerManager?.initialize()
+
+                val config = PoseTrackerConfig(
+                        enableVisualAssist = preferences.poseTrackerVisualAssist
+                )
+                poseTrackerManager?.updateConfig(config)
+
+                binding.poseTrackerToggleButton.visibility = View.VISIBLE
+                binding.poseTrackerToggleButton.setOnClickListener {
+                        val isActive = poseTrackerManager?.toggleTracking() ?: false
+                        binding.poseTrackerToggleButton.alpha = if(isActive) 1.0f else 0.6f
+                        if(!isActive) {
+                                viewModel.input.resetPoseTrackerMovement()
+                        }
+                }
+                
                 if(preferences.poseTrackerEnabled)
                 {
-                        val overlayView = binding.poseTrackerOverlay
-                        poseTrackerManager = PoseTrackerManager(overlayView) { movementX, movementY ->
-                                viewModel.input.injectPoseTrackerMovement(movementX, movementY)
-                        }
-                        poseTrackerManager?.initialize()
-
-                        val config = PoseTrackerConfig(
-                                enableVisualAssist = preferences.poseTrackerVisualAssist
-                        )
-                        poseTrackerManager?.updateConfig(config)
-
-                        binding.poseTrackerToggleButton.visibility = View.VISIBLE
-                        binding.poseTrackerToggleButton.setOnClickListener {
-                                val isActive = poseTrackerManager?.toggleTracking() ?: false
-                                binding.poseTrackerToggleButton.alpha = if(isActive) 1.0f else 0.6f
-                                if(!isActive) {
-                                        viewModel.input.resetPoseTrackerMovement()
-                                }
-                        }
+                        poseTrackerManager?.setTrackingEnabled(true)
+                        binding.poseTrackerToggleButton.alpha = 1.0f
                 }
         }
 
