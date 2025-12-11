@@ -34,10 +34,11 @@ jobs:
         # Clone munit (for tests)
         git clone --depth 1 https://github.com/nemequ/munit.git test/munit
     
-    - name: Install protobuf compiler
+    - name: Install protobuf compiler and Python dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y protobuf-compiler
+        pip install protobuf grpcio-tools
     
     - name: Set up JDK 17
       uses: actions/setup-java@v4
