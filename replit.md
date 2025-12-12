@@ -172,6 +172,11 @@ implementation 'com.google.mlkit:pose-detection-accurate:18.0.0-beta3'
 
 ## Recent Changes
 
+- 2025-12-12: Fixed Settings crash - DataStore now handles getInt/putInt for SeekBarPreference
+- 2025-12-12: Fixed null safety issues in DataStore class
+- 2025-12-12: Fixed PoseTrackerManager initialization - added context and overlayView parameters
+- 2025-12-12: Fixed TriggerBot callback integration in StreamActivity
+- 2025-12-12: Added injectTriggerBot() method to StreamInput for R2 trigger control
 - 2024-12: Added comprehensive PoseTracker settings section
 - 2024-12: Implemented TriggerBot with delay, hold time, auto-fire
 - 2024-12: Added aim smoothing, speed, and assist strength controls
