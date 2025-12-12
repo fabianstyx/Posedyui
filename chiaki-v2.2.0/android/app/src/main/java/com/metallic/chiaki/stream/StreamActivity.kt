@@ -152,9 +152,15 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
                 poseTrackerHandlerThread = HandlerThread("PoseTrackerThread").apply { start() }
                 poseTrackerHandler = Handler(poseTrackerHandlerThread!!.looper)
                 
-                poseTrackerManager = PoseTrackerManager(overlayView) { movementX, movementY ->
+                poseTrackerManager = PoseTrackerManager(this, overlayView, { movementX, movementY ->
                         viewModel.input.injectPoseTrackerMovement(movementX, movementY)
-                }
+                }, { isFiring ->
+                        if (isFiring) {
+                                viewModel.input.injectTriggerBot(true)
+                        } else {
+                                viewModel.input.injectTriggerBot(false)
+                        }
+                })
                 poseTrackerManager?.initialize()
 
                 val config = PoseTrackerConfig(

@@ -46,6 +46,12 @@ class StreamInput(val context: Context, val preferences: Preferences)
                         controllerState.rightX = poseTrackerControllerState.rightX
                         controllerState.rightY = poseTrackerControllerState.rightY
                 }
+                
+                // Apply PoseTracker TriggerBot R2 if active
+                if(poseTrackerActive && poseTrackerControllerState.r2State > 0U)
+                {
+                        controllerState.r2State = poseTrackerControllerState.r2State
+                }
 
                 return controllerState or touchControllerState
         }
@@ -54,7 +60,7 @@ class StreamInput(val context: Context, val preferences: Preferences)
         private val keyControllerState = ControllerState() // from KeyEvents
         private val motionControllerState = ControllerState() // from MotionEvents
         private val poseTrackerControllerState = ControllerState() // from PoseTracker AI
-        private val poseTrackerSensitivity = 0.5f
+        private val poseTrackerSensitivity = 1.0f
         private var poseTrackerActive = false
         var touchControllerState = ControllerState()
                 set(value)
@@ -217,12 +223,32 @@ class StreamInput(val context: Context, val preferences: Preferences)
         fun injectPoseTrackerMovement(movementX: Float, movementY: Float)
         {
                 poseTrackerActive = true
-                val scaledX = (movementX * poseTrackerSensitivity).coerceIn(-1f, 1f)
-                val scaledY = (movementY * poseTrackerSensitivity).coerceIn(-1f, 1f)
+                // Normalize movement values - movementX/Y can be in pixels (e.g. -500 to +500)
+                // We need to map them to joystick range (-1 to 1)
+                // Using a reference width of 500 pixels for full joystick deflection
+                val normalizeScale = 1f / 150f  // 150 pixels = full joystick
+                val normalizedX = (movementX * normalizeScale).coerceIn(-1f, 1f)
+                val normalizedY = (movementY * normalizeScale).coerceIn(-1f, 1f)
+                
+                // Apply sensitivity multiplier
+                val scaledX = (normalizedX * poseTrackerSensitivity).coerceIn(-1f, 1f)
+                val scaledY = (normalizedY * poseTrackerSensitivity).coerceIn(-1f, 1f)
 
                 poseTrackerControllerState.rightX = (scaledX * Short.MAX_VALUE).toInt().toShort()
                 poseTrackerControllerState.rightY = (scaledY * Short.MAX_VALUE).toInt().toShort()
 
+                controllerStateUpdated()
+        }
+
+        fun injectTriggerBot(firing: Boolean)
+        {
+                if (firing) {
+                        // Press R2 trigger fully
+                        poseTrackerControllerState.r2State = UByte.MAX_VALUE
+                } else {
+                        // Release R2 trigger
+                        poseTrackerControllerState.r2State = 0U
+                }
                 controllerStateUpdated()
         }
 
@@ -231,6 +257,7 @@ class StreamInput(val context: Context, val preferences: Preferences)
                 poseTrackerActive = false
                 poseTrackerControllerState.rightX = 0
                 poseTrackerControllerState.rightY = 0
+                poseTrackerControllerState.r2State = 0U
                 controllerStateUpdated()
         }
 }
