@@ -5,8 +5,10 @@ package com.metallic.chiaki.posetracker
 data class PoseTrackerConfig(
     // Core settings
     var isEnabled: Boolean = false,
+    var detectorType: DetectorType = DetectorType.YOLO_OBJECT,
     var confidence: Float = 0.28f,
     var fovRadius: Float = 300f,
+    var debugMode: Boolean = false,
     
     // Visual settings
     var enableVisualAssist: Boolean = true,

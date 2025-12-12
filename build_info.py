@@ -41,7 +41,11 @@ def main():
         "posetracker/PoseTrackerOverlayView.kt", 
         "posetracker/PoseDetectorHelper.kt",
         "posetracker/PoseTrackerManager.kt",
-        "posetracker/PoseTrackerSettings.kt"
+        "posetracker/PoseTrackerSettings.kt",
+        "posetracker/YoloDetectorHelper.kt",
+        "posetracker/ColorDetectorHelper.kt",
+        "posetracker/BaseDetector.kt",
+        "posetracker/DetectorType.kt"
     ]
     base_path = "chiaki-v2.2.0/android/app/src/main/java/com/metallic/chiaki"
     for f in posetracker_files:
@@ -71,9 +75,16 @@ def main():
     print("  - Controller button mapping for activation")
     print()
     
-    print("Dependencies (ML Kit Pose Detection):")
+    print("Detection Models Available:")
+    print("  1. ML Kit Pose - For real human bodies (original)")
+    print("  2. YOLO Object - For game characters (recommended)")
+    print("  3. Color Detection - Fast fallback method")
+    print()
+    print("Dependencies:")
     print("  - com.google.mlkit:pose-detection:18.0.0-beta3")
     print("  - com.google.mlkit:pose-detection-accurate:18.0.0-beta3")
+    print("  - org.tensorflow:tensorflow-lite:2.13.0")
+    print("  - org.tensorflow:tensorflow-lite-gpu:2.13.0")
     print()
     print("-" * 60)
     print("  USAGE (in the Android app)")

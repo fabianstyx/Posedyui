@@ -12,8 +12,10 @@ class PoseTrackerSettings(context: Context) {
     companion object {
         // Core settings keys - must match preferences.xml keys
         const val KEY_ENABLED = "pose_tracker_enabled"
+        const val KEY_DETECTOR_TYPE = "pose_tracker_detector_type"
         const val KEY_CONFIDENCE = "pose_tracker_confidence"
         const val KEY_FOV_RADIUS = "pose_tracker_fov"
+        const val KEY_DEBUG_MODE = "pose_tracker_debug_mode"
         
         // Visual settings keys
         const val KEY_VISUAL_ASSIST = "pose_tracker_visual_assist"
@@ -63,8 +65,14 @@ class PoseTrackerSettings(context: Context) {
         return PoseTrackerConfig(
             // Core settings (SeekBar values need conversion)
             isEnabled = prefs.getBoolean(KEY_ENABLED, false),
+            detectorType = try {
+                DetectorType.values()[prefs.getString(KEY_DETECTOR_TYPE, "1")?.toIntOrNull() ?: 1]
+            } catch (e: Exception) {
+                DetectorType.YOLO_OBJECT
+            },
             confidence = prefs.getInt(KEY_CONFIDENCE, 28) / 100f,
             fovRadius = prefs.getInt(KEY_FOV_RADIUS, 300).toFloat(),
+            debugMode = prefs.getBoolean(KEY_DEBUG_MODE, false),
             
             // Visual settings
             enableVisualAssist = prefs.getBoolean(KEY_VISUAL_ASSIST, true),
@@ -127,8 +135,10 @@ class PoseTrackerSettings(context: Context) {
         prefs.edit().apply {
             // Core settings
             putBoolean(KEY_ENABLED, config.isEnabled)
+            putString(KEY_DETECTOR_TYPE, config.detectorType.ordinal.toString())
             putInt(KEY_CONFIDENCE, (config.confidence * 100).toInt())
             putInt(KEY_FOV_RADIUS, config.fovRadius.toInt())
+            putBoolean(KEY_DEBUG_MODE, config.debugMode)
             
             // Visual settings
             putBoolean(KEY_VISUAL_ASSIST, config.enableVisualAssist)

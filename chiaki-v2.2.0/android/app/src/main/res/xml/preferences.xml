@@ -89,6 +89,22 @@
             app:summary="@string/preferences_pose_tracker_enabled_summary"
             app:icon="@drawable/ic_motion" />
 
+        <ListPreference
+            app:key="@string/preferences_pose_tracker_detector_type_key"
+            app:title="@string/preferences_pose_tracker_detector_type_title"
+            app:summary="%s"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:entries="@array/pose_tracker_detector_type_entries"
+            app:entryValues="@array/pose_tracker_detector_type_values"
+            app:defaultValue="1" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_debug_mode_key"
+            app:title="@string/preferences_pose_tracker_debug_mode_title"
+            app:summary="@string/preferences_pose_tracker_debug_mode_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:defaultValue="false" />
+
         <SeekBarPreference
             app:key="@string/preferences_pose_tracker_confidence_key"
             app:title="@string/preferences_pose_tracker_confidence_title"
