@@ -28,7 +28,6 @@ import com.metallic.chiaki.session.*
 import com.metallic.chiaki.touchcontrols.DefaultTouchControlsFragment
 import com.metallic.chiaki.touchcontrols.TouchControlsFragment
 import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
-import com.metallic.chiaki.posetracker.PoseTrackerConfig
 import com.metallic.chiaki.posetracker.PoseTrackerManager
 import com.metallic.chiaki.posetracker.PoseTrackerOverlayView
 import android.graphics.RectF
@@ -162,11 +161,6 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
                         }
                 })
                 poseTrackerManager?.initialize()
-
-                val config = PoseTrackerConfig(
-                        enableVisualAssist = preferences.poseTrackerVisualAssist
-                )
-                poseTrackerManager?.updateConfig(config)
 
                 binding.poseTrackerToggleButton.visibility = View.VISIBLE
                 setupDraggableButton()
