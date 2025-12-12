@@ -120,16 +120,206 @@
     <string name="preferences_bitrate_key">stream_bitrate</string>
     <string name="preferences_codec_key">stream_codec</string>
 
-    <!-- PoseTracker strings -->
+    <!-- PoseTracker Category -->
+    <string name="preferences_category_title_posetracker">PoseTracker AI</string>
+    
+    <!-- PoseTracker Core Settings -->
     <string name="preferences_pose_tracker_enabled_key">pose_tracker_enabled</string>
-    <string name="preferences_pose_tracker_enabled_title">PoseTracker AI</string>
-    <string name="preferences_pose_tracker_enabled_summary">Enable AI-powered pose tracking for aim assistance</string>
-    <string name="preferences_pose_tracker_visual_assist_key">pose_tracker_visual_assist</string>
-    <string name="preferences_pose_tracker_visual_assist_title">Visual Assist</string>
-    <string name="preferences_pose_tracker_visual_assist_summary">Show detection boxes and focus indicators</string>
+    <string name="preferences_pose_tracker_enabled_title">Enable PoseTracker</string>
+    <string name="preferences_pose_tracker_enabled_summary">AI-powered pose tracking for aim assistance</string>
+    
     <string name="preferences_pose_tracker_confidence_key">pose_tracker_confidence</string>
     <string name="preferences_pose_tracker_confidence_title">Detection Confidence</string>
+    <string name="preferences_pose_tracker_confidence_summary">Minimum confidence threshold (0.1-1.0)</string>
+    
     <string name="preferences_pose_tracker_fov_key">pose_tracker_fov</string>
-    <string name="preferences_pose_tracker_fov_title">Focus Area Radius</string>
-    <string name="preferences_category_title_posetracker">PoseTracker AI</string>
+    <string name="preferences_pose_tracker_fov_title">FOV Radius</string>
+    <string name="preferences_pose_tracker_fov_summary">Only track targets within this radius from center (pixels)</string>
+    
+    <!-- PoseTracker Visual Settings -->
+    <string name="preferences_category_title_posetracker_visual">Visual Settings</string>
+    
+    <string name="preferences_pose_tracker_visual_assist_key">pose_tracker_visual_assist</string>
+    <string name="preferences_pose_tracker_visual_assist_title">Visual Assist</string>
+    <string name="preferences_pose_tracker_visual_assist_summary">Show detection overlays and indicators</string>
+    
+    <string name="preferences_pose_tracker_show_focus_circle_key">pose_tracker_show_focus_circle</string>
+    <string name="preferences_pose_tracker_show_focus_circle_title">Show FOV Circle</string>
+    <string name="preferences_pose_tracker_show_focus_circle_summary">Display the focus area radius on screen</string>
+    
+    <string name="preferences_pose_tracker_show_bounding_box_key">pose_tracker_show_bounding_box</string>
+    <string name="preferences_pose_tracker_show_bounding_box_title">Show Bounding Boxes</string>
+    <string name="preferences_pose_tracker_show_bounding_box_summary">Display detection boxes around targets</string>
+    
+    <string name="preferences_pose_tracker_show_focus_label_key">pose_tracker_show_focus_label</string>
+    <string name="preferences_pose_tracker_show_focus_label_title">Show Focus Labels</string>
+    <string name="preferences_pose_tracker_show_focus_label_summary">Display \"focus\" label on current target</string>
+    
+    <!-- PoseTracker TriggerBot Settings -->
+    <string name="preferences_category_title_posetracker_triggerbot">TriggerBot</string>
+    
+    <string name="preferences_pose_tracker_triggerbot_enabled_key">pose_tracker_triggerbot_enabled</string>
+    <string name="preferences_pose_tracker_triggerbot_enabled_title">Enable TriggerBot</string>
+    <string name="preferences_pose_tracker_triggerbot_enabled_summary">Auto-fire when target is in crosshair</string>
+    
+    <string name="preferences_pose_tracker_triggerbot_delay_key">pose_tracker_triggerbot_delay</string>
+    <string name="preferences_pose_tracker_triggerbot_delay_title">TriggerBot Delay</string>
+    <string name="preferences_pose_tracker_triggerbot_delay_summary">Delay before firing (ms)</string>
+    
+    <string name="preferences_pose_tracker_triggerbot_hold_key">pose_tracker_triggerbot_hold</string>
+    <string name="preferences_pose_tracker_triggerbot_hold_title">Fire Hold Time</string>
+    <string name="preferences_pose_tracker_triggerbot_hold_summary">How long to hold fire button (ms)</string>
+    
+    <string name="preferences_pose_tracker_autofire_enabled_key">pose_tracker_autofire_enabled</string>
+    <string name="preferences_pose_tracker_autofire_enabled_title">Auto-Fire Mode</string>
+    <string name="preferences_pose_tracker_autofire_enabled_summary">Continuously fire while target locked</string>
+    
+    <string name="preferences_pose_tracker_autofire_rate_key">pose_tracker_autofire_rate</string>
+    <string name="preferences_pose_tracker_autofire_rate_title">Auto-Fire Rate</string>
+    <string name="preferences_pose_tracker_autofire_rate_summary">Time between shots (ms)</string>
+    
+    <!-- PoseTracker Aim Settings -->
+    <string name="preferences_category_title_posetracker_aim">Aim Settings</string>
+    
+    <string name="preferences_pose_tracker_aim_smoothing_key">pose_tracker_aim_smoothing</string>
+    <string name="preferences_pose_tracker_aim_smoothing_title">Aim Smoothing</string>
+    <string name="preferences_pose_tracker_aim_smoothing_summary">Smooth aim movement (0.0-1.0)</string>
+    
+    <string name="preferences_pose_tracker_aim_speed_key">pose_tracker_aim_speed</string>
+    <string name="preferences_pose_tracker_aim_speed_title">Aim Speed</string>
+    <string name="preferences_pose_tracker_aim_speed_summary">Speed multiplier for aim movement</string>
+    
+    <string name="preferences_pose_tracker_aim_assist_strength_key">pose_tracker_aim_assist_strength</string>
+    <string name="preferences_pose_tracker_aim_assist_strength_title">Aim Assist Strength</string>
+    <string name="preferences_pose_tracker_aim_assist_strength_summary">How strongly to pull toward target (0.0-1.0)</string>
+    
+    <string name="preferences_pose_tracker_snap_to_target_key">pose_tracker_snap_to_target</string>
+    <string name="preferences_pose_tracker_snap_to_target_title">Snap to Target</string>
+    <string name="preferences_pose_tracker_snap_to_target_summary">Instantly snap when target is close</string>
+    
+    <string name="preferences_pose_tracker_snap_threshold_key">pose_tracker_snap_threshold</string>
+    <string name="preferences_pose_tracker_snap_threshold_title">Snap Threshold</string>
+    <string name="preferences_pose_tracker_snap_threshold_summary">Distance at which to snap (pixels)</string>
+    
+    <!-- PoseTracker Activation Settings -->
+    <string name="preferences_category_title_posetracker_activation">Activation</string>
+    
+    <string name="preferences_pose_tracker_activation_mode_key">pose_tracker_activation_mode</string>
+    <string name="preferences_pose_tracker_activation_mode_title">Activation Mode</string>
+    <string name="preferences_pose_tracker_activation_mode_summary">How tracking is activated</string>
+    
+    <string name="preferences_pose_tracker_controller_button_key">pose_tracker_controller_button</string>
+    <string name="preferences_pose_tracker_controller_button_title">Controller Button</string>
+    <string name="preferences_pose_tracker_controller_button_summary">Button to activate/toggle tracking</string>
+    
+    <!-- PoseTracker Target Settings -->
+    <string name="preferences_category_title_posetracker_target">Target Settings</string>
+    
+    <string name="preferences_pose_tracker_target_priority_key">pose_tracker_target_priority</string>
+    <string name="preferences_pose_tracker_target_priority_title">Target Priority</string>
+    <string name="preferences_pose_tracker_target_priority_summary">How to select target when multiple detected</string>
+    
+    <string name="preferences_pose_tracker_headshot_mode_key">pose_tracker_headshot_mode</string>
+    <string name="preferences_pose_tracker_headshot_mode_title">Headshot Mode</string>
+    <string name="preferences_pose_tracker_headshot_mode_summary">Aim for head instead of center mass</string>
+    
+    <string name="preferences_pose_tracker_head_offset_key">pose_tracker_head_offset</string>
+    <string name="preferences_pose_tracker_head_offset_title">Head Offset</string>
+    <string name="preferences_pose_tracker_head_offset_summary">Vertical offset for headshot aim</string>
+    
+    <!-- PoseTracker HUD Mask Settings -->
+    <string name="preferences_category_title_posetracker_mask">HUD Mask (Ignore UI)</string>
+    
+    <string name="preferences_pose_tracker_mask_enabled_key">pose_tracker_mask_enabled</string>
+    <string name="preferences_pose_tracker_mask_enabled_title">Enable HUD Mask</string>
+    <string name="preferences_pose_tracker_mask_enabled_summary">Ignore game UI elements during detection</string>
+    
+    <string name="preferences_pose_tracker_show_mask_key">pose_tracker_show_mask</string>
+    <string name="preferences_pose_tracker_show_mask_title">Show Mask Area</string>
+    <string name="preferences_pose_tracker_show_mask_summary">Visualize the masked area on screen</string>
+    
+    <string name="preferences_pose_tracker_mask_x_key">pose_tracker_mask_x</string>
+    <string name="preferences_pose_tracker_mask_x_title">Mask X Position</string>
+    <string name="preferences_pose_tracker_mask_x_summary">Horizontal position (0.0-1.0)</string>
+    
+    <string name="preferences_pose_tracker_mask_y_key">pose_tracker_mask_y</string>
+    <string name="preferences_pose_tracker_mask_y_title">Mask Y Position</string>
+    <string name="preferences_pose_tracker_mask_y_summary">Vertical position (0.0-1.0)</string>
+    
+    <string name="preferences_pose_tracker_mask_width_key">pose_tracker_mask_width</string>
+    <string name="preferences_pose_tracker_mask_width_title">Mask Width</string>
+    <string name="preferences_pose_tracker_mask_width_summary">Width of mask area (0.0-1.0)</string>
+    
+    <string name="preferences_pose_tracker_mask_height_key">pose_tracker_mask_height</string>
+    <string name="preferences_pose_tracker_mask_height_title">Mask Height</string>
+    <string name="preferences_pose_tracker_mask_height_summary">Height of mask area (0.0-1.0)</string>
+    
+    <!-- PoseTracker Advanced Settings -->
+    <string name="preferences_category_title_posetracker_advanced">Advanced</string>
+    
+    <string name="preferences_pose_tracker_processing_interval_key">pose_tracker_processing_interval</string>
+    <string name="preferences_pose_tracker_processing_interval_title">Processing Interval</string>
+    <string name="preferences_pose_tracker_processing_interval_summary">Time between frame processing (ms)</string>
+    
+    <string name="preferences_pose_tracker_max_targets_key">pose_tracker_max_targets</string>
+    <string name="preferences_pose_tracker_max_targets_title">Max Targets</string>
+    <string name="preferences_pose_tracker_max_targets_summary">Maximum number of targets to track</string>
+    
+    <string name="preferences_pose_tracker_predictive_aiming_key">pose_tracker_predictive_aiming</string>
+    <string name="preferences_pose_tracker_predictive_aiming_title">Predictive Aiming</string>
+    <string name="preferences_pose_tracker_predictive_aiming_summary">Predict target movement direction</string>
+    
+    <string name="preferences_pose_tracker_prediction_strength_key">pose_tracker_prediction_strength</string>
+    <string name="preferences_pose_tracker_prediction_strength_title">Prediction Strength</string>
+    <string name="preferences_pose_tracker_prediction_strength_summary">How far ahead to predict (0.0-1.0)</string>
+    
+    <!-- PoseTracker List Options -->
+    <string-array name="pose_tracker_activation_mode_entries">
+        <item>Toggle</item>
+        <item>Hold</item>
+        <item>Always On</item>
+    </string-array>
+    <string-array name="pose_tracker_activation_mode_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    
+    <string-array name="pose_tracker_controller_button_entries">
+        <item>LT (Left Trigger)</item>
+        <item>RT (Right Trigger)</item>
+        <item>LB (Left Bumper)</item>
+        <item>RB (Right Bumper)</item>
+        <item>L3 (Left Stick)</item>
+        <item>R3 (Right Stick)</item>
+        <item>A</item>
+        <item>B</item>
+        <item>X</item>
+        <item>Y</item>
+    </string-array>
+    <string-array name="pose_tracker_controller_button_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+    </string-array>
+    
+    <string-array name="pose_tracker_target_priority_entries">
+        <item>Closest to Center</item>
+        <item>Closest to Crosshair</item>
+        <item>Largest Target</item>
+        <item>Highest Confidence</item>
+    </string-array>
+    <string-array name="pose_tracker_target_priority_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
 </resources>

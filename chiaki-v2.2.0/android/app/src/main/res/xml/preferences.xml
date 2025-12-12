@@ -78,21 +78,332 @@
             app:icon="@drawable/ic_codec"/>
     </PreferenceCategory>
 
+    <!-- PoseTracker AI - Core Settings -->
     <PreferenceCategory
         app:key="category_posetracker"
         app:title="@string/preferences_category_title_posetracker">
+        
         <SwitchPreference
             app:key="@string/preferences_pose_tracker_enabled_key"
             app:title="@string/preferences_pose_tracker_enabled_title"
             app:summary="@string/preferences_pose_tracker_enabled_summary"
             app:icon="@drawable/ic_motion" />
 
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_confidence_key"
+            app:title="@string/preferences_pose_tracker_confidence_title"
+            app:summary="@string/preferences_pose_tracker_confidence_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            android:max="100"
+            app:min="10"
+            app:defaultValue="28"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_fov_key"
+            app:title="@string/preferences_pose_tracker_fov_title"
+            app:summary="@string/preferences_pose_tracker_fov_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            android:max="600"
+            app:min="50"
+            app:defaultValue="300"
+            app:showSeekBarValue="true" />
+    </PreferenceCategory>
+
+    <!-- PoseTracker Visual Settings -->
+    <PreferenceCategory
+        app:key="category_posetracker_visual"
+        app:title="@string/preferences_category_title_posetracker_visual">
+        
         <SwitchPreference
             app:key="@string/preferences_pose_tracker_visual_assist_key"
             app:title="@string/preferences_pose_tracker_visual_assist_title"
             app:summary="@string/preferences_pose_tracker_visual_assist_summary"
-            app:icon="@drawable/ic_motion"
-            app:dependency="@string/preferences_pose_tracker_enabled_key" />
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:defaultValue="true" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_show_focus_circle_key"
+            app:title="@string/preferences_pose_tracker_show_focus_circle_title"
+            app:summary="@string/preferences_pose_tracker_show_focus_circle_summary"
+            app:dependency="@string/preferences_pose_tracker_visual_assist_key"
+            app:defaultValue="true" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_show_bounding_box_key"
+            app:title="@string/preferences_pose_tracker_show_bounding_box_title"
+            app:summary="@string/preferences_pose_tracker_show_bounding_box_summary"
+            app:dependency="@string/preferences_pose_tracker_visual_assist_key"
+            app:defaultValue="true" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_show_focus_label_key"
+            app:title="@string/preferences_pose_tracker_show_focus_label_title"
+            app:summary="@string/preferences_pose_tracker_show_focus_label_summary"
+            app:dependency="@string/preferences_pose_tracker_visual_assist_key"
+            app:defaultValue="true" />
+    </PreferenceCategory>
+
+    <!-- PoseTracker TriggerBot Settings -->
+    <PreferenceCategory
+        app:key="category_posetracker_triggerbot"
+        app:title="@string/preferences_category_title_posetracker_triggerbot">
+        
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_triggerbot_enabled_key"
+            app:title="@string/preferences_pose_tracker_triggerbot_enabled_title"
+            app:summary="@string/preferences_pose_tracker_triggerbot_enabled_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:defaultValue="false" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_triggerbot_delay_key"
+            app:title="@string/preferences_pose_tracker_triggerbot_delay_title"
+            app:summary="@string/preferences_pose_tracker_triggerbot_delay_summary"
+            app:dependency="@string/preferences_pose_tracker_triggerbot_enabled_key"
+            android:max="500"
+            app:min="0"
+            app:defaultValue="50"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_triggerbot_hold_key"
+            app:title="@string/preferences_pose_tracker_triggerbot_hold_title"
+            app:summary="@string/preferences_pose_tracker_triggerbot_hold_summary"
+            app:dependency="@string/preferences_pose_tracker_triggerbot_enabled_key"
+            android:max="500"
+            app:min="10"
+            app:defaultValue="100"
+            app:showSeekBarValue="true" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_autofire_enabled_key"
+            app:title="@string/preferences_pose_tracker_autofire_enabled_title"
+            app:summary="@string/preferences_pose_tracker_autofire_enabled_summary"
+            app:dependency="@string/preferences_pose_tracker_triggerbot_enabled_key"
+            app:defaultValue="false" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_autofire_rate_key"
+            app:title="@string/preferences_pose_tracker_autofire_rate_title"
+            app:summary="@string/preferences_pose_tracker_autofire_rate_summary"
+            app:dependency="@string/preferences_pose_tracker_autofire_enabled_key"
+            android:max="500"
+            app:min="50"
+            app:defaultValue="100"
+            app:showSeekBarValue="true" />
+    </PreferenceCategory>
+
+    <!-- PoseTracker Aim Settings -->
+    <PreferenceCategory
+        app:key="category_posetracker_aim"
+        app:title="@string/preferences_category_title_posetracker_aim">
+        
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_aim_smoothing_key"
+            app:title="@string/preferences_pose_tracker_aim_smoothing_title"
+            app:summary="@string/preferences_pose_tracker_aim_smoothing_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            android:max="100"
+            app:min="0"
+            app:defaultValue="50"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_aim_speed_key"
+            app:title="@string/preferences_pose_tracker_aim_speed_title"
+            app:summary="@string/preferences_pose_tracker_aim_speed_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            android:max="200"
+            app:min="10"
+            app:defaultValue="100"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_aim_assist_strength_key"
+            app:title="@string/preferences_pose_tracker_aim_assist_strength_title"
+            app:summary="@string/preferences_pose_tracker_aim_assist_strength_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            android:max="100"
+            app:min="0"
+            app:defaultValue="80"
+            app:showSeekBarValue="true" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_snap_to_target_key"
+            app:title="@string/preferences_pose_tracker_snap_to_target_title"
+            app:summary="@string/preferences_pose_tracker_snap_to_target_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:defaultValue="false" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_snap_threshold_key"
+            app:title="@string/preferences_pose_tracker_snap_threshold_title"
+            app:summary="@string/preferences_pose_tracker_snap_threshold_summary"
+            app:dependency="@string/preferences_pose_tracker_snap_to_target_key"
+            android:max="200"
+            app:min="10"
+            app:defaultValue="50"
+            app:showSeekBarValue="true" />
+    </PreferenceCategory>
+
+    <!-- PoseTracker Activation Settings -->
+    <PreferenceCategory
+        app:key="category_posetracker_activation"
+        app:title="@string/preferences_category_title_posetracker_activation">
+        
+        <ListPreference
+            app:key="@string/preferences_pose_tracker_activation_mode_key"
+            app:title="@string/preferences_pose_tracker_activation_mode_title"
+            app:summary="%s"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:entries="@array/pose_tracker_activation_mode_entries"
+            app:entryValues="@array/pose_tracker_activation_mode_values"
+            app:defaultValue="0" />
+
+        <ListPreference
+            app:key="@string/preferences_pose_tracker_controller_button_key"
+            app:title="@string/preferences_pose_tracker_controller_button_title"
+            app:summary="%s"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:entries="@array/pose_tracker_controller_button_entries"
+            app:entryValues="@array/pose_tracker_controller_button_values"
+            app:defaultValue="0" />
+    </PreferenceCategory>
+
+    <!-- PoseTracker Target Settings -->
+    <PreferenceCategory
+        app:key="category_posetracker_target"
+        app:title="@string/preferences_category_title_posetracker_target">
+        
+        <ListPreference
+            app:key="@string/preferences_pose_tracker_target_priority_key"
+            app:title="@string/preferences_pose_tracker_target_priority_title"
+            app:summary="%s"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:entries="@array/pose_tracker_target_priority_entries"
+            app:entryValues="@array/pose_tracker_target_priority_values"
+            app:defaultValue="0" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_headshot_mode_key"
+            app:title="@string/preferences_pose_tracker_headshot_mode_title"
+            app:summary="@string/preferences_pose_tracker_headshot_mode_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:defaultValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_head_offset_key"
+            app:title="@string/preferences_pose_tracker_head_offset_title"
+            app:summary="@string/preferences_pose_tracker_head_offset_summary"
+            app:dependency="@string/preferences_pose_tracker_headshot_mode_key"
+            android:max="20"
+            app:min="0"
+            app:defaultValue="7"
+            app:showSeekBarValue="true" />
+    </PreferenceCategory>
+
+    <!-- PoseTracker HUD Mask Settings -->
+    <PreferenceCategory
+        app:key="category_posetracker_mask"
+        app:title="@string/preferences_category_title_posetracker_mask">
+        
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_mask_enabled_key"
+            app:title="@string/preferences_pose_tracker_mask_enabled_title"
+            app:summary="@string/preferences_pose_tracker_mask_enabled_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:defaultValue="true" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_show_mask_key"
+            app:title="@string/preferences_pose_tracker_show_mask_title"
+            app:summary="@string/preferences_pose_tracker_show_mask_summary"
+            app:dependency="@string/preferences_pose_tracker_mask_enabled_key"
+            app:defaultValue="false" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_mask_x_key"
+            app:title="@string/preferences_pose_tracker_mask_x_title"
+            app:summary="@string/preferences_pose_tracker_mask_x_summary"
+            app:dependency="@string/preferences_pose_tracker_mask_enabled_key"
+            android:max="100"
+            app:min="0"
+            app:defaultValue="0"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_mask_y_key"
+            app:title="@string/preferences_pose_tracker_mask_y_title"
+            app:summary="@string/preferences_pose_tracker_mask_y_summary"
+            app:dependency="@string/preferences_pose_tracker_mask_enabled_key"
+            android:max="100"
+            app:min="0"
+            app:defaultValue="27"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_mask_width_key"
+            app:title="@string/preferences_pose_tracker_mask_width_title"
+            app:summary="@string/preferences_pose_tracker_mask_width_summary"
+            app:dependency="@string/preferences_pose_tracker_mask_enabled_key"
+            android:max="100"
+            app:min="0"
+            app:defaultValue="43"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_mask_height_key"
+            app:title="@string/preferences_pose_tracker_mask_height_title"
+            app:summary="@string/preferences_pose_tracker_mask_height_summary"
+            app:dependency="@string/preferences_pose_tracker_mask_enabled_key"
+            android:max="100"
+            app:min="0"
+            app:defaultValue="74"
+            app:showSeekBarValue="true" />
+    </PreferenceCategory>
+
+    <!-- PoseTracker Advanced Settings -->
+    <PreferenceCategory
+        app:key="category_posetracker_advanced"
+        app:title="@string/preferences_category_title_posetracker_advanced">
+        
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_processing_interval_key"
+            app:title="@string/preferences_pose_tracker_processing_interval_title"
+            app:summary="@string/preferences_pose_tracker_processing_interval_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            android:max="100"
+            app:min="16"
+            app:defaultValue="33"
+            app:showSeekBarValue="true" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_max_targets_key"
+            app:title="@string/preferences_pose_tracker_max_targets_title"
+            app:summary="@string/preferences_pose_tracker_max_targets_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            android:max="10"
+            app:min="1"
+            app:defaultValue="5"
+            app:showSeekBarValue="true" />
+
+        <SwitchPreference
+            app:key="@string/preferences_pose_tracker_predictive_aiming_key"
+            app:title="@string/preferences_pose_tracker_predictive_aiming_title"
+            app:summary="@string/preferences_pose_tracker_predictive_aiming_summary"
+            app:dependency="@string/preferences_pose_tracker_enabled_key"
+            app:defaultValue="false" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_pose_tracker_prediction_strength_key"
+            app:title="@string/preferences_pose_tracker_prediction_strength_title"
+            app:summary="@string/preferences_pose_tracker_prediction_strength_summary"
+            app:dependency="@string/preferences_pose_tracker_predictive_aiming_key"
+            android:max="100"
+            app:min="0"
+            app:defaultValue="30"
+            app:showSeekBarValue="true" />
     </PreferenceCategory>
 
     <PreferenceCategory

@@ -20,7 +20,7 @@ interface PoseDetectorListener {
 }
 
 class PoseDetectorHelper(
-    private val config: PoseTrackerConfig,
+    private var config: PoseTrackerConfig,
     private val listener: PoseDetectorListener
 ) {
     private var poseDetector: PoseDetector? = null
@@ -42,6 +42,10 @@ class PoseDetectorHelper(
             }
         }
     }
+    
+    fun updateConfig(newConfig: PoseTrackerConfig) {
+        config = newConfig
+    }
 
     fun detectPose(bitmap: Bitmap, videoRect: RectF) {
         if (!isInitialized || poseDetector == null || isProcessing) {
@@ -61,6 +65,7 @@ class PoseDetectorHelper(
 
         executor.execute {
             try {
+                // Apply HUD mask if enabled
                 val maskedBitmap = if (config.maskEnabled) {
                     applyMask(bitmapCopy)
                 } else {
@@ -99,6 +104,7 @@ class PoseDetectorHelper(
             style = android.graphics.Paint.Style.FILL
         }
 
+        // Mask the HUD area to prevent false positives
         val maskRect = android.graphics.RectF(
             bitmap.width * config.maskX,
             bitmap.height * config.maskY,
@@ -130,6 +136,7 @@ class PoseDetectorHelper(
         val scaleX = videoRect.width() / bitmap.width
         val scaleY = videoRect.height() / bitmap.height
 
+        // Calculate bounding box from valid landmarks
         for (landmark in landmarks) {
             if (landmark.inFrameLikelihood >= config.confidence) {
                 val screenX = videoRect.left + landmark.position.x * scaleX
@@ -143,26 +150,37 @@ class PoseDetectorHelper(
             }
         }
 
+        // Need at least 5 valid landmarks
         if (validLandmarks < 5) return null
 
         val boundingBox = RectF(minX, minY, maxX, maxY)
         
-        val nose = pose.getPoseLandmark(PoseLandmark.NOSE)
-        val focusPoint = if (nose != null && nose.inFrameLikelihood >= config.confidence) {
-            PointF(
-                videoRect.left + nose.position.x * scaleX,
-                videoRect.top + nose.position.y * scaleY
-            )
+        // Calculate focus point based on headshot mode
+        val focusPoint = if (config.headShotMode) {
+            // Try to use nose landmark for headshot
+            val nose = pose.getPoseLandmark(PoseLandmark.NOSE)
+            if (nose != null && nose.inFrameLikelihood >= config.confidence) {
+                PointF(
+                    videoRect.left + nose.position.x * scaleX,
+                    videoRect.top + nose.position.y * scaleY
+                )
+            } else {
+                // Fallback: top of bounding box with offset
+                PointF(
+                    boundingBox.centerX(),
+                    boundingBox.top + boundingBox.height() * config.headOffsetY
+                )
+            }
         } else {
-            PointF(
-                boundingBox.centerX(),
-                boundingBox.top + boundingBox.height() / 14f
-            )
+            // Center mass targeting
+            PointF(boundingBox.centerX(), boundingBox.centerY())
         }
 
+        // FOV FILTERING: Only return pose if focus point is within FOV radius
         val distance = hypot(focusPoint.x - centerX, focusPoint.y - centerY)
-
-        if (distance > config.fovRadius) return null
+        if (distance > config.fovRadius) {
+            return null // Target outside FOV - ignore
+        }
 
         return DetectedPose(
             boundingBox = boundingBox,

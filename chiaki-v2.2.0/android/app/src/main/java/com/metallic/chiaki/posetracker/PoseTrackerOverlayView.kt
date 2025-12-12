@@ -19,11 +19,13 @@ class PoseTrackerOverlayView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val config = PoseTrackerConfig()
+    private var config = PoseTrackerConfig()
     
     private var currentPose: DetectedPose? = null
     private var videoRect: RectF = RectF()
+    private var isTrackingEnabled = false
     
+    // Bounding box paint
     private val boxPaint = Paint().apply {
         color = Color.RED
         style = Paint.Style.STROKE
@@ -31,38 +33,47 @@ class PoseTrackerOverlayView @JvmOverloads constructor(
         isAntiAlias = true
     }
     
+    // FOV circle paint
     private val focusCirclePaint = Paint().apply {
-        color = Color.argb(102, 255, 255, 255)
+        color = Color.argb(102, 255, 255, 255) // 40% opacity white
         style = Paint.Style.STROKE
         strokeWidth = 2f
         isAntiAlias = true
     }
     
+    // HUD mask paint
     private val maskPaint = Paint().apply {
-        color = Color.argb(38, 255, 255, 255)
+        color = Color.argb(38, 255, 255, 255) // 15% opacity white
         style = Paint.Style.FILL
         isAntiAlias = true
     }
     
+    // Focus label paint
     private val labelPaint = Paint().apply {
         color = Color.RED
         textSize = 40f
         textAlign = Paint.Align.CENTER
         isAntiAlias = true
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    
+    // Crosshair paint
+    private val crosshairPaint = Paint().apply {
+        color = Color.argb(180, 0, 255, 0) // Green crosshair
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        isAntiAlias = true
+    }
+    
+    // Target dot paint
+    private val targetDotPaint = Paint().apply {
+        color = Color.RED
+        style = Paint.Style.FILL
+        isAntiAlias = true
     }
 
     fun setConfig(newConfig: PoseTrackerConfig) {
-        config.confidence = newConfig.confidence
-        config.enableVisualAssist = newConfig.enableVisualAssist
-        config.fovRadius = newConfig.fovRadius
-        config.isEnabled = newConfig.isEnabled
-        config.showFocusCircle = newConfig.showFocusCircle
-        config.maskEnabled = newConfig.maskEnabled
-        config.showMask = newConfig.showMask
-        config.maskX = newConfig.maskX
-        config.maskY = newConfig.maskY
-        config.maskWidth = newConfig.maskWidth
-        config.maskHeight = newConfig.maskHeight
+        config = newConfig.copy()
         invalidate()
     }
     
@@ -77,11 +88,11 @@ class PoseTrackerOverlayView @JvmOverloads constructor(
     }
     
     fun setTrackingEnabled(enabled: Boolean) {
-        config.isEnabled = enabled
+        isTrackingEnabled = enabled
         invalidate()
     }
     
-    fun isTrackingEnabled(): Boolean = config.isEnabled
+    fun isTrackingEnabled(): Boolean = isTrackingEnabled
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -91,11 +102,13 @@ class PoseTrackerOverlayView @JvmOverloads constructor(
         val centerX = videoRect.centerX()
         val centerY = videoRect.centerY()
         
-        if (config.showFocusCircle && config.isEnabled) {
+        // Draw FOV circle (always show when enabled for context)
+        if (config.showFocusCircle && isTrackingEnabled && config.enableVisualAssist) {
             canvas.drawCircle(centerX, centerY, config.fovRadius, focusCirclePaint)
         }
         
-        if (config.maskEnabled && config.showMask && config.isEnabled) {
+        // Draw HUD mask area for debugging
+        if (config.maskEnabled && config.showMask && isTrackingEnabled) {
             val maskRect = RectF(
                 videoRect.left + videoRect.width() * config.maskX,
                 videoRect.top + videoRect.height() * config.maskY,
@@ -105,15 +118,45 @@ class PoseTrackerOverlayView @JvmOverloads constructor(
             canvas.drawRect(maskRect, maskPaint)
         }
         
-        if (config.enableVisualAssist && config.isEnabled && currentPose != null) {
+        // Draw detected pose
+        if (config.enableVisualAssist && isTrackingEnabled && currentPose != null) {
             val pose = currentPose!!
-            canvas.drawRect(pose.boundingBox, boxPaint)
-            canvas.drawText(
-                "focus",
-                pose.boundingBox.centerX(),
-                pose.boundingBox.top - 10f,
-                labelPaint
-            )
+            
+            // Draw bounding box
+            if (config.showBoundingBox) {
+                canvas.drawRect(pose.boundingBox, boxPaint)
+            }
+            
+            // Draw focus label
+            if (config.showFocusLabel) {
+                canvas.drawText(
+                    "focus",
+                    pose.boundingBox.centerX(),
+                    pose.boundingBox.top - 10f,
+                    labelPaint
+                )
+            }
+            
+            // Draw target dot at focus point
+            canvas.drawCircle(pose.focusPoint.x, pose.focusPoint.y, 6f, targetDotPaint)
+            
+            // Draw line from center to target
+            val lineAlpha = 100
+            val linePaint = Paint().apply {
+                color = Color.argb(lineAlpha, 255, 0, 0)
+                style = Paint.Style.STROKE
+                strokeWidth = 1f
+                isAntiAlias = true
+                pathEffect = DashPathEffect(floatArrayOf(10f, 5f), 0f)
+            }
+            canvas.drawLine(centerX, centerY, pose.focusPoint.x, pose.focusPoint.y, linePaint)
+        }
+        
+        // Draw crosshair at center (always visible when tracking)
+        if (isTrackingEnabled && config.enableVisualAssist) {
+            val crosshairSize = 15f
+            canvas.drawLine(centerX - crosshairSize, centerY, centerX + crosshairSize, centerY, crosshairPaint)
+            canvas.drawLine(centerX, centerY - crosshairSize, centerX, centerY + crosshairSize, crosshairPaint)
         }
     }
 }
