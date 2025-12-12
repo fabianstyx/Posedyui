@@ -37,16 +37,17 @@ chiaki-v2.2.0/
 │   │   ├── src/main/
 │   │   │   ├── java/com/metallic/chiaki/
 │   │   │   │   ├── posetracker/    # PoseTracker integration
-│   │   │   │   │   ├── PoseTrackerConfig.kt
-│   │   │   │   │   ├── PoseTrackerOverlayView.kt
-│   │   │   │   │   ├── PoseDetectorHelper.kt
-│   │   │   │   │   └── PoseTrackerManager.kt
-│   │   │   │   ├── stream/         # Streaming activity (modified)
-│   │   │   │   ├── session/        # Session management (modified)
-│   │   │   │   └── ...
+│   │   │   │   │   ├── PoseTrackerConfig.kt       # All config options
+│   │   │   │   │   ├── PoseTrackerSettings.kt     # Persistence layer
+│   │   │   │   │   ├── PoseTrackerOverlayView.kt  # Visual overlay
+│   │   │   │   │   ├── PoseDetectorHelper.kt      # ML Kit wrapper
+│   │   │   │   │   └── PoseTrackerManager.kt      # Main controller
+│   │   │   │   ├── stream/         # Streaming activity
+│   │   │   │   ├── session/        # Session management
+│   │   │   │   └── settings/       # Settings UI
 │   │   │   ├── cpp/                # Native C/C++ code
 │   │   │   └── res/                # Android resources
-│   │   └── build.gradle            # Dependencies added
+│   │   └── build.gradle            # Dependencies
 │   └── build.gradle
 ├── lib/                        # Core Chiaki library (C)
 ├── gui/                        # Qt GUI (not used for Android)
@@ -55,78 +56,131 @@ chiaki-v2.2.0/
 
 ## PoseTracker Integration
 
-### New Files Added (4 files)
+### Core Files (5 files)
 
 | File | Description |
 |------|-------------|
-| `PoseTrackerConfig.kt` | Configuration data class with confidence, FOV radius, mask settings |
-| `PoseTrackerOverlayView.kt` | Custom View for drawing detection boxes and focus circle |
+| `PoseTrackerConfig.kt` | Configuration data class with all settings |
+| `PoseTrackerSettings.kt` | SharedPreferences persistence layer |
+| `PoseTrackerOverlayView.kt` | Custom View for drawing overlays |
 | `PoseDetectorHelper.kt` | Google ML Kit pose detection wrapper |
-| `PoseTrackerManager.kt` | Main manager coordinating detection and input injection |
+| `PoseTrackerManager.kt` | Main manager with triggerbot and aim logic |
 
-### Modified Files
-
-- `app/build.gradle` - Added ML Kit Pose Detection dependencies
-- `stream/StreamActivity.kt` - Integrated PoseTracker initialization and toggle button
-- `session/StreamInput.kt` - Added pose tracker movement injection to right stick
-- `res/layout/activity_stream.xml` - Added overlay view and toggle button
-- `res/values/strings.xml` - Added PoseTracker strings
-- `res/xml/preferences.xml` - Added PoseTracker settings category
-- `common/Preferences.kt` - Added PoseTracker preferences
-- `proguard-rules.pro` - Added ML Kit ProGuard rules
-
-### Dependencies Added
+### Dependencies
 
 ```gradle
 implementation 'com.google.mlkit:pose-detection:18.0.0-beta3'
 implementation 'com.google.mlkit:pose-detection-accurate:18.0.0-beta3'
 ```
 
-## Configuration Options
+## Configuration Options (All in Settings)
 
+### Core Settings
+| Option | Default | Range | Description |
+|--------|---------|-------|-------------|
+| Enable PoseTracker | Off | On/Off | Master enable switch |
+| Confidence | 28% | 10-100% | Detection confidence threshold |
+| FOV Radius | 300px | 50-600px | Only track targets within this radius |
+
+### Visual Settings
 | Option | Default | Description |
 |--------|---------|-------------|
-| Confidence | 0.28 | Minimum detection confidence |
-| FOV Radius | 300px | Focus area around screen center |
-| Visual Assist | true | Show detection boxes |
-| Mask Enabled | true | Ignore HUD regions |
+| Visual Assist | On | Show all overlays |
+| Show FOV Circle | On | Display focus area radius |
+| Show Bounding Boxes | On | Display detection boxes around targets |
+| Show Focus Labels | On | Display "focus" label on target |
 
-### Mask Area (for ignoring HUD)
-- X: 0.0, Y: 0.27
-- Width: 0.43, Height: 0.74
+### TriggerBot Settings
+| Option | Default | Range | Description |
+|--------|---------|-------|-------------|
+| Enable TriggerBot | Off | On/Off | Auto-fire when target in crosshair |
+| TriggerBot Delay | 50ms | 0-500ms | Delay before firing |
+| Fire Hold Time | 100ms | 10-500ms | How long to hold fire |
+| Auto-Fire Mode | Off | On/Off | Continuously fire while locked |
+| Auto-Fire Rate | 100ms | 50-500ms | Time between auto-fire shots |
 
-## Usage
+### Aim Settings
+| Option | Default | Range | Description |
+|--------|---------|-------|-------------|
+| Aim Smoothing | 50% | 0-100% | Smooth aim movement (higher = slower) |
+| Aim Speed | 100% | 10-200% | Speed multiplier (100 = normal) |
+| Aim Assist Strength | 80% | 0-100% | How strongly to pull toward target |
+| Snap to Target | Off | On/Off | Instant snap when close |
+| Snap Threshold | 50px | 10-200px | Distance for snap activation |
 
-1. **Enable in Settings**: Settings → PoseTracker AI → Enable
-2. **Toggle during gameplay**: Tap the robot icon (top-right) to activate/deactivate
-3. **Visual feedback**: Red boxes show detected poses, white circle shows focus area
+### Activation Settings
+| Option | Default | Options | Description |
+|--------|---------|---------|-------------|
+| Activation Mode | Toggle | Toggle/Hold/Always On | How tracking is activated |
+| Controller Button | LT | LT/RT/LB/RB/L3/R3/A/B/X/Y | Button to activate |
+
+### Target Settings
+| Option | Default | Description |
+|--------|---------|-------------|
+| Target Priority | Closest to Center | How to select when multiple targets |
+| Headshot Mode | On | Aim for head instead of center mass |
+| Head Offset | 7% | Vertical offset for headshot aim |
+
+### HUD Mask (Ignore Game UI)
+| Option | Default | Description |
+|--------|---------|-------------|
+| Enable Mask | On | Ignore UI elements during detection |
+| Show Mask | Off | Visualize the masked area |
+| Mask X | 0% | Horizontal position |
+| Mask Y | 27% | Vertical position |
+| Mask Width | 43% | Width of mask area |
+| Mask Height | 74% | Height of mask area |
+
+### Advanced Settings
+| Option | Default | Range | Description |
+|--------|---------|-------|-------------|
+| Processing Interval | 33ms | 16-100ms | Time between frame processing |
+| Max Targets | 5 | 1-10 | Maximum targets to track |
+| Predictive Aiming | Off | On/Off | Predict target movement |
+| Prediction Strength | 30% | 0-100% | How far ahead to predict |
 
 ## Technical Implementation
 
 ### Pose Detection Flow
-1. ML Kit processes video frames in background thread
-2. Detected poses are filtered by confidence and FOV radius
-3. Best target (closest to center within FOV) is selected
-4. Focus point (nose or head estimate) determines aim direction
-5. Movement delta is calculated and injected to right stick
+1. ML Kit processes video frames at configured interval
+2. Detected poses are filtered by confidence threshold
+3. HUD mask is applied to ignore UI elements
+4. **FOV Filtering**: Only poses within fovRadius are considered
+5. Best target is selected based on priority setting
+6. Focus point (nose or head estimate) determines aim direction
+7. Smoothing and aim speed are applied
+8. Movement delta is injected to controller
 
-### Input Injection
-- Movement is applied to `poseTrackerControllerState`
-- Right stick values are updated based on distance from center
-- Sensitivity factor (0.5) controls movement speed
-- Active flag ensures clean state when disabled
+### TriggerBot Flow
+1. When crosshair enters target bounding box, timer starts
+2. After configured delay, fire button is pressed
+3. Fire is held for configured hold time
+4. In auto-fire mode, continues firing at configured rate
+5. When crosshair leaves target, firing stops
+
+### Settings Persistence
+- Uses Android `PreferenceManager.getDefaultSharedPreferences()`
+- Settings sync automatically via `OnSharedPreferenceChangeListener`
+- SeekBar values stored as integers (0-100), converted to floats in code
+
+## Usage
+
+1. **Enable in Settings**: Settings → PoseTracker AI → Enable
+2. **Configure options**: Adjust settings to your preference
+3. **Toggle during gameplay**: Use configured button or tap robot icon
+4. **Visual feedback**: Red boxes show detected poses, white circle shows FOV
 
 ## Recent Changes
 
-- 2024-12: Initial PoseTracker AI integration using Google ML Kit
-- 2024-12: Fixed frame capture - implemented PixelCopy for video frame extraction
-- 2024-12: Fixed video rect coordinates - uses overlay-local coordinates via getLocationInWindow
-- 2024-12: Fixed bitmap lifecycle - copy before processing, proper ownership transfer and recycling
-- 2024-12: Fixed thread safety - dedicated HandlerThread for pose processing
-- 2024-12: Made toggle button draggable with position persistence
-- 2024-12: Added preference persistence for PoseTracker toggle state
-- 2024-12: Fixed memory leaks - proper cleanup of layout listeners, handlers, and callbacks
-- Original Chiaki v2.2.0 codebase preserved
+- 2024-12: Added comprehensive PoseTracker settings section
+- 2024-12: Implemented TriggerBot with delay, hold time, auto-fire
+- 2024-12: Added aim smoothing, speed, and assist strength controls
+- 2024-12: Added FOV-limited tracking (only within fovRadius)
+- 2024-12: Added predictive aiming for moving targets
+- 2024-12: Added snap-to-target functionality
+- 2024-12: Added HUD masking to ignore game UI
+- 2024-12: Added settings persistence with auto-reload
+- 2024-12: Original PoseTracker AI integration using Google ML Kit
 
 ## User Preferences
 

@@ -3,70 +3,68 @@
 package com.metallic.chiaki.posetracker
 
 import android.content.Context
-import android.content.SharedPreferences
+import androidx.preference.PreferenceManager
 
 class PoseTrackerSettings(context: Context) {
     
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
     
     companion object {
-        private const val PREFS_NAME = "pose_tracker_settings"
-        
-        // Core settings keys
-        private const val KEY_ENABLED = "pose_tracker_enabled"
-        private const val KEY_CONFIDENCE = "pose_tracker_confidence"
-        private const val KEY_FOV_RADIUS = "pose_tracker_fov_radius"
+        // Core settings keys - must match preferences.xml keys
+        const val KEY_ENABLED = "pose_tracker_enabled"
+        const val KEY_CONFIDENCE = "pose_tracker_confidence"
+        const val KEY_FOV_RADIUS = "pose_tracker_fov"
         
         // Visual settings keys
-        private const val KEY_VISUAL_ASSIST = "pose_tracker_visual_assist"
-        private const val KEY_SHOW_FOCUS_CIRCLE = "pose_tracker_show_focus_circle"
-        private const val KEY_SHOW_BOUNDING_BOX = "pose_tracker_show_bounding_box"
-        private const val KEY_SHOW_FOCUS_LABEL = "pose_tracker_show_focus_label"
+        const val KEY_VISUAL_ASSIST = "pose_tracker_visual_assist"
+        const val KEY_SHOW_FOCUS_CIRCLE = "pose_tracker_show_focus_circle"
+        const val KEY_SHOW_BOUNDING_BOX = "pose_tracker_show_bounding_box"
+        const val KEY_SHOW_FOCUS_LABEL = "pose_tracker_show_focus_label"
         
         // TriggerBot settings keys
-        private const val KEY_TRIGGERBOT_ENABLED = "pose_tracker_triggerbot_enabled"
-        private const val KEY_TRIGGERBOT_DELAY = "pose_tracker_triggerbot_delay"
-        private const val KEY_TRIGGERBOT_HOLD_TIME = "pose_tracker_triggerbot_hold_time"
-        private const val KEY_AUTO_FIRE_ENABLED = "pose_tracker_auto_fire_enabled"
-        private const val KEY_AUTO_FIRE_RATE = "pose_tracker_auto_fire_rate"
+        const val KEY_TRIGGERBOT_ENABLED = "pose_tracker_triggerbot_enabled"
+        const val KEY_TRIGGERBOT_DELAY = "pose_tracker_triggerbot_delay"
+        const val KEY_TRIGGERBOT_HOLD_TIME = "pose_tracker_triggerbot_hold"
+        const val KEY_AUTO_FIRE_ENABLED = "pose_tracker_autofire_enabled"
+        const val KEY_AUTO_FIRE_RATE = "pose_tracker_autofire_rate"
         
         // Aim settings keys
-        private const val KEY_AIM_SMOOTHING = "pose_tracker_aim_smoothing"
-        private const val KEY_AIM_SPEED = "pose_tracker_aim_speed"
-        private const val KEY_AIM_ASSIST_STRENGTH = "pose_tracker_aim_assist_strength"
-        private const val KEY_SNAP_TO_TARGET = "pose_tracker_snap_to_target"
-        private const val KEY_SNAP_THRESHOLD = "pose_tracker_snap_threshold"
+        const val KEY_AIM_SMOOTHING = "pose_tracker_aim_smoothing"
+        const val KEY_AIM_SPEED = "pose_tracker_aim_speed"
+        const val KEY_AIM_ASSIST_STRENGTH = "pose_tracker_aim_assist_strength"
+        const val KEY_SNAP_TO_TARGET = "pose_tracker_snap_to_target"
+        const val KEY_SNAP_THRESHOLD = "pose_tracker_snap_threshold"
         
         // Activation settings keys
-        private const val KEY_ACTIVATION_MODE = "pose_tracker_activation_mode"
-        private const val KEY_CONTROLLER_BUTTON = "pose_tracker_controller_button"
+        const val KEY_ACTIVATION_MODE = "pose_tracker_activation_mode"
+        const val KEY_CONTROLLER_BUTTON = "pose_tracker_controller_button"
         
         // Target priority keys
-        private const val KEY_TARGET_PRIORITY = "pose_tracker_target_priority"
-        private const val KEY_HEADSHOT_MODE = "pose_tracker_headshot_mode"
-        private const val KEY_HEAD_OFFSET_Y = "pose_tracker_head_offset_y"
+        const val KEY_TARGET_PRIORITY = "pose_tracker_target_priority"
+        const val KEY_HEADSHOT_MODE = "pose_tracker_headshot_mode"
+        const val KEY_HEAD_OFFSET_Y = "pose_tracker_head_offset"
         
         // Mask settings keys
-        private const val KEY_MASK_ENABLED = "pose_tracker_mask_enabled"
-        private const val KEY_SHOW_MASK = "pose_tracker_show_mask"
-        private const val KEY_MASK_X = "pose_tracker_mask_x"
-        private const val KEY_MASK_Y = "pose_tracker_mask_y"
-        private const val KEY_MASK_WIDTH = "pose_tracker_mask_width"
-        private const val KEY_MASK_HEIGHT = "pose_tracker_mask_height"
+        const val KEY_MASK_ENABLED = "pose_tracker_mask_enabled"
+        const val KEY_SHOW_MASK = "pose_tracker_show_mask"
+        const val KEY_MASK_X = "pose_tracker_mask_x"
+        const val KEY_MASK_Y = "pose_tracker_mask_y"
+        const val KEY_MASK_WIDTH = "pose_tracker_mask_width"
+        const val KEY_MASK_HEIGHT = "pose_tracker_mask_height"
         
         // Advanced settings keys
-        private const val KEY_PROCESSING_INTERVAL = "pose_tracker_processing_interval"
-        private const val KEY_MAX_TARGETS = "pose_tracker_max_targets"
-        private const val KEY_PREDICTIVE_AIMING = "pose_tracker_predictive_aiming"
-        private const val KEY_PREDICTION_STRENGTH = "pose_tracker_prediction_strength"
+        const val KEY_PROCESSING_INTERVAL = "pose_tracker_processing_interval"
+        const val KEY_MAX_TARGETS = "pose_tracker_max_targets"
+        const val KEY_PREDICTIVE_AIMING = "pose_tracker_predictive_aiming"
+        const val KEY_PREDICTION_STRENGTH = "pose_tracker_prediction_strength"
     }
     
     fun loadConfig(): PoseTrackerConfig {
         return PoseTrackerConfig(
-            // Core settings
+            // Core settings (SeekBar values need conversion)
             isEnabled = prefs.getBoolean(KEY_ENABLED, false),
-            confidence = prefs.getFloat(KEY_CONFIDENCE, 0.28f),
-            fovRadius = prefs.getFloat(KEY_FOV_RADIUS, 300f),
+            confidence = prefs.getInt(KEY_CONFIDENCE, 28) / 100f,
+            fovRadius = prefs.getInt(KEY_FOV_RADIUS, 300).toFloat(),
             
             // Visual settings
             enableVisualAssist = prefs.getBoolean(KEY_VISUAL_ASSIST, true),
@@ -81,41 +79,47 @@ class PoseTrackerSettings(context: Context) {
             autoFireEnabled = prefs.getBoolean(KEY_AUTO_FIRE_ENABLED, false),
             autoFireRate = prefs.getInt(KEY_AUTO_FIRE_RATE, 100),
             
-            // Aim settings
-            aimSmoothing = prefs.getFloat(KEY_AIM_SMOOTHING, 0.5f),
-            aimSpeed = prefs.getFloat(KEY_AIM_SPEED, 1.0f),
-            aimAssistStrength = prefs.getFloat(KEY_AIM_ASSIST_STRENGTH, 0.8f),
+            // Aim settings (SeekBar values need conversion: 0-100 -> 0.0-1.0)
+            aimSmoothing = prefs.getInt(KEY_AIM_SMOOTHING, 50) / 100f,
+            aimSpeed = prefs.getInt(KEY_AIM_SPEED, 100) / 100f,
+            aimAssistStrength = prefs.getInt(KEY_AIM_ASSIST_STRENGTH, 80) / 100f,
             snapToTarget = prefs.getBoolean(KEY_SNAP_TO_TARGET, false),
-            snapThreshold = prefs.getFloat(KEY_SNAP_THRESHOLD, 50f),
+            snapThreshold = prefs.getInt(KEY_SNAP_THRESHOLD, 50).toFloat(),
             
-            // Activation settings
-            activationMode = ActivationMode.values().getOrElse(
-                prefs.getInt(KEY_ACTIVATION_MODE, 0)
-            ) { ActivationMode.TOGGLE },
-            controllerActivationButton = ControllerButton.values().getOrElse(
-                prefs.getInt(KEY_CONTROLLER_BUTTON, 0)
-            ) { ControllerButton.LT },
+            // Activation settings (ListPreference returns String)
+            activationMode = try {
+                ActivationMode.values()[prefs.getString(KEY_ACTIVATION_MODE, "0")?.toIntOrNull() ?: 0]
+            } catch (e: Exception) {
+                ActivationMode.TOGGLE
+            },
+            controllerActivationButton = try {
+                ControllerButton.values()[prefs.getString(KEY_CONTROLLER_BUTTON, "0")?.toIntOrNull() ?: 0]
+            } catch (e: Exception) {
+                ControllerButton.LT
+            },
             
             // Target priority
-            targetPriority = TargetPriority.values().getOrElse(
-                prefs.getInt(KEY_TARGET_PRIORITY, 0)
-            ) { TargetPriority.CLOSEST_TO_CENTER },
+            targetPriority = try {
+                TargetPriority.values()[prefs.getString(KEY_TARGET_PRIORITY, "0")?.toIntOrNull() ?: 0]
+            } catch (e: Exception) {
+                TargetPriority.CLOSEST_TO_CENTER
+            },
             headShotMode = prefs.getBoolean(KEY_HEADSHOT_MODE, true),
-            headOffsetY = prefs.getFloat(KEY_HEAD_OFFSET_Y, 0.07f),
+            headOffsetY = prefs.getInt(KEY_HEAD_OFFSET_Y, 7) / 100f,
             
-            // Mask settings
+            // Mask settings (SeekBar 0-100 -> 0.0-1.0)
             maskEnabled = prefs.getBoolean(KEY_MASK_ENABLED, true),
             showMask = prefs.getBoolean(KEY_SHOW_MASK, false),
-            maskX = prefs.getFloat(KEY_MASK_X, 0.0f),
-            maskY = prefs.getFloat(KEY_MASK_Y, 0.27f),
-            maskWidth = prefs.getFloat(KEY_MASK_WIDTH, 0.43f),
-            maskHeight = prefs.getFloat(KEY_MASK_HEIGHT, 0.74f),
+            maskX = prefs.getInt(KEY_MASK_X, 0) / 100f,
+            maskY = prefs.getInt(KEY_MASK_Y, 27) / 100f,
+            maskWidth = prefs.getInt(KEY_MASK_WIDTH, 43) / 100f,
+            maskHeight = prefs.getInt(KEY_MASK_HEIGHT, 74) / 100f,
             
             // Advanced settings
             processingInterval = prefs.getInt(KEY_PROCESSING_INTERVAL, 33),
             maxTargets = prefs.getInt(KEY_MAX_TARGETS, 5),
             predictiveAiming = prefs.getBoolean(KEY_PREDICTIVE_AIMING, false),
-            predictionStrength = prefs.getFloat(KEY_PREDICTION_STRENGTH, 0.3f)
+            predictionStrength = prefs.getInt(KEY_PREDICTION_STRENGTH, 30) / 100f
         )
     }
     
@@ -123,8 +127,8 @@ class PoseTrackerSettings(context: Context) {
         prefs.edit().apply {
             // Core settings
             putBoolean(KEY_ENABLED, config.isEnabled)
-            putFloat(KEY_CONFIDENCE, config.confidence)
-            putFloat(KEY_FOV_RADIUS, config.fovRadius)
+            putInt(KEY_CONFIDENCE, (config.confidence * 100).toInt())
+            putInt(KEY_FOV_RADIUS, config.fovRadius.toInt())
             
             // Visual settings
             putBoolean(KEY_VISUAL_ASSIST, config.enableVisualAssist)
@@ -140,89 +144,39 @@ class PoseTrackerSettings(context: Context) {
             putInt(KEY_AUTO_FIRE_RATE, config.autoFireRate)
             
             // Aim settings
-            putFloat(KEY_AIM_SMOOTHING, config.aimSmoothing)
-            putFloat(KEY_AIM_SPEED, config.aimSpeed)
-            putFloat(KEY_AIM_ASSIST_STRENGTH, config.aimAssistStrength)
+            putInt(KEY_AIM_SMOOTHING, (config.aimSmoothing * 100).toInt())
+            putInt(KEY_AIM_SPEED, (config.aimSpeed * 100).toInt())
+            putInt(KEY_AIM_ASSIST_STRENGTH, (config.aimAssistStrength * 100).toInt())
             putBoolean(KEY_SNAP_TO_TARGET, config.snapToTarget)
-            putFloat(KEY_SNAP_THRESHOLD, config.snapThreshold)
+            putInt(KEY_SNAP_THRESHOLD, config.snapThreshold.toInt())
             
             // Activation settings
-            putInt(KEY_ACTIVATION_MODE, config.activationMode.ordinal)
-            putInt(KEY_CONTROLLER_BUTTON, config.controllerActivationButton.ordinal)
+            putString(KEY_ACTIVATION_MODE, config.activationMode.ordinal.toString())
+            putString(KEY_CONTROLLER_BUTTON, config.controllerActivationButton.ordinal.toString())
             
             // Target priority
-            putInt(KEY_TARGET_PRIORITY, config.targetPriority.ordinal)
+            putString(KEY_TARGET_PRIORITY, config.targetPriority.ordinal.toString())
             putBoolean(KEY_HEADSHOT_MODE, config.headShotMode)
-            putFloat(KEY_HEAD_OFFSET_Y, config.headOffsetY)
+            putInt(KEY_HEAD_OFFSET_Y, (config.headOffsetY * 100).toInt())
             
             // Mask settings
             putBoolean(KEY_MASK_ENABLED, config.maskEnabled)
             putBoolean(KEY_SHOW_MASK, config.showMask)
-            putFloat(KEY_MASK_X, config.maskX)
-            putFloat(KEY_MASK_Y, config.maskY)
-            putFloat(KEY_MASK_WIDTH, config.maskWidth)
-            putFloat(KEY_MASK_HEIGHT, config.maskHeight)
+            putInt(KEY_MASK_X, (config.maskX * 100).toInt())
+            putInt(KEY_MASK_Y, (config.maskY * 100).toInt())
+            putInt(KEY_MASK_WIDTH, (config.maskWidth * 100).toInt())
+            putInt(KEY_MASK_HEIGHT, (config.maskHeight * 100).toInt())
             
             // Advanced settings
             putInt(KEY_PROCESSING_INTERVAL, config.processingInterval)
             putInt(KEY_MAX_TARGETS, config.maxTargets)
             putBoolean(KEY_PREDICTIVE_AIMING, config.predictiveAiming)
-            putFloat(KEY_PREDICTION_STRENGTH, config.predictionStrength)
+            putInt(KEY_PREDICTION_STRENGTH, (config.predictionStrength * 100).toInt())
             
             apply()
         }
     }
     
-    // Individual setters for preference changes
-    fun setEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_ENABLED, enabled).apply()
-    }
-    
-    fun setConfidence(confidence: Float) {
-        prefs.edit().putFloat(KEY_CONFIDENCE, confidence).apply()
-    }
-    
-    fun setFovRadius(radius: Float) {
-        prefs.edit().putFloat(KEY_FOV_RADIUS, radius).apply()
-    }
-    
-    fun setVisualAssist(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_VISUAL_ASSIST, enabled).apply()
-    }
-    
-    fun setTriggerBotEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_TRIGGERBOT_ENABLED, enabled).apply()
-    }
-    
-    fun setTriggerBotDelay(delay: Int) {
-        prefs.edit().putInt(KEY_TRIGGERBOT_DELAY, delay).apply()
-    }
-    
-    fun setAimSmoothing(smoothing: Float) {
-        prefs.edit().putFloat(KEY_AIM_SMOOTHING, smoothing).apply()
-    }
-    
-    fun setAimSpeed(speed: Float) {
-        prefs.edit().putFloat(KEY_AIM_SPEED, speed).apply()
-    }
-    
-    fun setActivationMode(mode: ActivationMode) {
-        prefs.edit().putInt(KEY_ACTIVATION_MODE, mode.ordinal).apply()
-    }
-    
-    fun setControllerButton(button: ControllerButton) {
-        prefs.edit().putInt(KEY_CONTROLLER_BUTTON, button.ordinal).apply()
-    }
-    
-    fun setHeadshotMode(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_HEADSHOT_MODE, enabled).apply()
-    }
-    
-    fun setMaskEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_MASK_ENABLED, enabled).apply()
-    }
-    
-    fun setShowMask(show: Boolean) {
-        prefs.edit().putBoolean(KEY_SHOW_MASK, show).apply()
-    }
+    // Check if PoseTracker is enabled
+    fun isEnabled(): Boolean = prefs.getBoolean(KEY_ENABLED, false)
 }

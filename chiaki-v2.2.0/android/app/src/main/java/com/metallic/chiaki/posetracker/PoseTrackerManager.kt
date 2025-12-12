@@ -3,19 +3,21 @@
 package com.metallic.chiaki.posetracker
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.PointF
 import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
+import androidx.preference.PreferenceManager
 import kotlin.math.hypot
 
 class PoseTrackerManager(
-    context: Context,
+    private val context: Context,
     private val overlayView: PoseTrackerOverlayView,
     private val onCursorMove: ((Float, Float) -> Unit)? = null,
     private val onTriggerBot: ((Boolean) -> Unit)? = null
-) : PoseDetectorListener {
+) : PoseDetectorListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private val settings = PoseTrackerSettings(context)
     private var config = settings.loadConfig()
@@ -29,8 +31,6 @@ class PoseTrackerManager(
     // Smoothing state
     private var smoothedX = 0f
     private var smoothedY = 0f
-    private var lastTargetX = 0f
-    private var lastTargetY = 0f
     
     // TriggerBot state
     private var triggerBotArmed = false
@@ -41,12 +41,26 @@ class PoseTrackerManager(
     // Predictive aiming state
     private var previousFocusPoint: PointF? = null
     private var previousTime = 0L
+    
+    // Frame processing timing
+    private var lastProcessTime = 0L
 
     fun initialize() {
         config = settings.loadConfig()
         poseDetector = PoseDetectorHelper(config, this)
         poseDetector?.initialize()
         overlayView.setConfig(config)
+        
+        // Register for preference changes
+        PreferenceManager.getDefaultSharedPreferences(context)
+            .registerOnSharedPreferenceChangeListener(this)
+    }
+    
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        // Reload config when any PoseTracker preference changes
+        if (key?.startsWith("pose_tracker") == true) {
+            reloadConfig()
+        }
     }
 
     fun setVideoRect(rect: RectF) {
@@ -90,6 +104,15 @@ class PoseTrackerManager(
             if (!bitmap.isRecycled) bitmap.recycle()
             return
         }
+        
+        // Respect processing interval setting
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastProcessTime < config.processingInterval) {
+            if (!bitmap.isRecycled) bitmap.recycle()
+            return
+        }
+        lastProcessTime = currentTime
+        
         poseDetector?.detectPose(bitmap, videoRect) ?: run {
             if (!bitmap.isRecycled) bitmap.recycle()
         }
@@ -118,11 +141,12 @@ class PoseTrackerManager(
                 previousFocusPoint = PointF(pose.focusPoint.x, pose.focusPoint.y)
                 previousTime = currentTime
                 
-                // Apply smoothing
+                // Apply smoothing (higher value = more smoothing/slower response)
                 val smoothingFactor = config.aimSmoothing
-                if (smoothingFactor > 0f) {
-                    smoothedX = smoothedX + (targetX - smoothedX) * (1f - smoothingFactor)
-                    smoothedY = smoothedY + (targetY - smoothedY) * (1f - smoothingFactor)
+                if (smoothingFactor > 0.01f) {
+                    val lerpFactor = 1f - smoothingFactor
+                    smoothedX = smoothedX + (targetX - smoothedX) * lerpFactor
+                    smoothedY = smoothedY + (targetY - smoothedY) * lerpFactor
                 } else {
                     smoothedX = targetX
                     smoothedY = targetY
@@ -135,7 +159,7 @@ class PoseTrackerManager(
                     smoothedY = targetY
                 }
                 
-                // Move cursor with aim speed
+                // Move cursor
                 moveCursorTo(smoothedX, smoothedY)
                 
                 // Handle TriggerBot
@@ -213,14 +237,15 @@ class PoseTrackerManager(
         val gameCenterX = videoRect.centerX()
         val gameCenterY = videoRect.centerY()
 
+        // Calculate raw movement
         var movementX = targetX - gameCenterX
         var movementY = targetY - gameCenterY
         
-        // Apply aim assist strength
+        // Apply aim assist strength (0.0 = no assist, 1.0 = full assist)
         movementX *= config.aimAssistStrength
         movementY *= config.aimAssistStrength
         
-        // Apply aim speed
+        // Apply aim speed multiplier (0.1 = slow, 1.0 = normal, 2.0 = fast)
         movementX *= config.aimSpeed
         movementY *= config.aimSpeed
 
@@ -242,6 +267,10 @@ class PoseTrackerManager(
     }
 
     fun release() {
+        // Unregister preference listener
+        PreferenceManager.getDefaultSharedPreferences(context)
+            .unregisterOnSharedPreferenceChangeListener(this)
+        
         resetTriggerBot()
         poseDetector?.close()
         poseDetector = null
