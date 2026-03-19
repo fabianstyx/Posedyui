@@ -121,5 +121,8 @@ dependencies {
     // TensorFlow Lite for YOLO detection
     implementation 'org.tensorflow:tensorflow-lite:2.13.0'
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.13.0'
+    // Required: provides GpuDelegateFactory.Options (supertype of GpuDelegate.Options).
+    // Without this, the Kotlin compiler cannot resolve GpuDelegate.Options and the build fails.
+    implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4'
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 }

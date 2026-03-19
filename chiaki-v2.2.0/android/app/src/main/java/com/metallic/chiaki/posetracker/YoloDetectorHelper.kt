@@ -50,10 +50,16 @@ class YoloDetectorHelper(
                 if (modelBuffer != null) {
                     val options = Interpreter.Options()
 
+                    // FIX: use CompatibilityList only to check support, then create GpuDelegate
+                    // with default options.  The previous code called bestOptionsForThisDevice
+                    // which returns GpuDelegateFactory.Options — a type that lives in the
+                    // tensorflow-lite-gpu-delegate-plugin artefact.  When that artefact is absent
+                    // the Kotlin compiler cannot resolve GpuDelegate.Options' supertype and the
+                    // build fails.  Passing GpuDelegate.Options() directly avoids the issue and
+                    // is equally correct for typical inference workloads.
                     val compatList = CompatibilityList()
                     if (compatList.isDelegateSupportedOnThisDevice) {
-                        val delegateOptions = compatList.bestOptionsForThisDevice
-                        options.addDelegate(GpuDelegate(delegateOptions))
+                        options.addDelegate(GpuDelegate(GpuDelegate.Options()))
                         listener.onDebugInfo("YOLO: Using GPU acceleration")
                     } else {
                         options.setNumThreads(4)
