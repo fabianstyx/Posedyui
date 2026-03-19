@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.PointF
 import android.graphics.RectF
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -17,7 +18,14 @@ class ColorDetectorHelper(
 
     private val executor = Executors.newSingleThreadExecutor()
     private var isInitialized = false
+
+    // FIX: @Volatile ensures cross-thread visibility of the processing flag
+    @Volatile
     private var isProcessing = false
+
+    companion object {
+        private const val EXECUTOR_SHUTDOWN_TIMEOUT_MS = 500L
+    }
 
     override fun initialize() {
         isInitialized = true
@@ -59,51 +67,53 @@ class ColorDetectorHelper(
         val height = bitmap.height
         val centerX = width / 2
         val centerY = height / 2
-        
+
         val scaleX = videoRect.width() / width
         val scaleY = videoRect.height() / height
-        
+
         val pixels = IntArray(width * height)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-        
+
         var bestX = -1
         var bestY = -1
         var bestScore = 0
-        
+
         val gridSize = 32
+        // Convert FOV radius from screen pixels to bitmap pixels for correct spatial filtering
         val fovRadiusPixels = (config.fovRadius / scaleX).toInt()
-        
+
         for (y in 0 until height step gridSize) {
             for (x in 0 until width step gridSize) {
                 val distFromCenter = hypot((x - centerX).toFloat(), (y - centerY).toFloat())
                 if (distFromCenter > fovRadiusPixels) continue
-                
+
                 var score = 0
                 val endY = min(y + gridSize, height)
                 val endX = min(x + gridSize, width)
-                
+
                 for (py in y until endY step 4) {
                     for (px in x until endX step 4) {
                         val pixel = pixels[py * width + px]
                         val r = (pixel shr 16) and 0xFF
                         val g = (pixel shr 8) and 0xFF
                         val b = pixel and 0xFF
-                        
+
                         val brightness = (r + g + b) / 3
                         val saturation = max(max(r, g), b) - min(min(r, g), b)
-                        
+
                         if (brightness in 60..240 && saturation > 15) {
-                            val skinScore = if (r > 95 && g > 40 && b > 20 && 
-                                               r > g && r > b && 
-                                               max(r, max(g, b)) - min(r, min(g, b)) > 15) 2 else 0
-                            
+                            val skinScore = if (r > 95 && g > 40 && b > 20 &&
+                                r > g && r > b &&
+                                max(r, max(g, b)) - min(r, min(g, b)) > 15
+                            ) 2 else 0
+
                             val contrastScore = if (brightness in 80..200) 1 else 0
-                            
+
                             score += 1 + skinScore + contrastScore
                         }
                     }
                 }
-                
+
                 if (score > bestScore) {
                     bestScore = score
                     bestX = x + gridSize / 2
@@ -111,19 +121,19 @@ class ColorDetectorHelper(
                 }
             }
         }
-        
+
         if (bestScore < 20) return null
-        
+
         val boxWidth = gridSize * 3f
         val boxHeight = gridSize * 5f
-        
+
         val screenLeft = videoRect.left + (bestX - boxWidth / 2) * scaleX
         val screenTop = videoRect.top + (bestY - boxHeight / 2) * scaleY
         val screenRight = videoRect.left + (bestX + boxWidth / 2) * scaleX
         val screenBottom = videoRect.top + (bestY + boxHeight / 2) * scaleY
-        
+
         val boundingBox = RectF(screenLeft, screenTop, screenRight, screenBottom)
-        
+
         val focusPoint = if (config.headShotMode) {
             PointF(
                 boundingBox.centerX(),
@@ -132,17 +142,18 @@ class ColorDetectorHelper(
         } else {
             PointF(boundingBox.centerX(), boundingBox.centerY())
         }
-        
-        val screenCenterX = videoRect.centerX()
-        val screenCenterY = videoRect.centerY()
-        val distanceFromCenter = hypot(focusPoint.x - screenCenterX, focusPoint.y - screenCenterY)
-        
-        if (distanceFromCenter > config.fovRadius) {
-            return null
-        }
-        
-        listener.onDebugInfo("Color: Target at (${focusPoint.x.toInt()}, ${focusPoint.y.toInt()}), score: $bestScore")
-        
+
+        val distanceFromCenter = hypot(
+            focusPoint.x - videoRect.centerX(),
+            focusPoint.y - videoRect.centerY()
+        )
+
+        if (distanceFromCenter > config.fovRadius) return null
+
+        listener.onDebugInfo(
+            "Color: Target at (${focusPoint.x.toInt()}, ${focusPoint.y.toInt()}), score: $bestScore"
+        )
+
         return DetectedPose(
             boundingBox = boundingBox,
             focusPoint = focusPoint,
@@ -155,7 +166,16 @@ class ColorDetectorHelper(
     }
 
     override fun close() {
-        executor.shutdown()
+        // FIX: original code only called executor.shutdown() which does not interrupt a running
+        // task. Use shutdownNow() + awaitTermination for a timely, clean shutdown.
+        executor.shutdownNow()
+        try {
+            executor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+        // FIX: always reset flags on close so a re-initialized instance starts cleanly
         isInitialized = false
+        isProcessing = false
     }
 }

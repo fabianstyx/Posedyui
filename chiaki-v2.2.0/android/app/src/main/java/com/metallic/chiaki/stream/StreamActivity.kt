@@ -151,15 +151,21 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
                 poseTrackerHandlerThread = HandlerThread("PoseTrackerThread").apply { start() }
                 poseTrackerHandler = Handler(poseTrackerHandlerThread!!.looper)
                 
-                poseTrackerManager = PoseTrackerManager(this, overlayView, { movementX, movementY ->
-                        viewModel.input.injectPoseTrackerMovement(movementX, movementY)
-                }, { isFiring ->
-                        if (isFiring) {
-                                viewModel.input.injectTriggerBot(true)
-                        } else {
-                                viewModel.input.injectTriggerBot(false)
+                poseTrackerManager = PoseTrackerManager(
+                        context = this,
+                        overlayView = overlayView,
+                        onCursorMove = { movementX, movementY ->
+                                viewModel.input.injectPoseTrackerMovement(movementX, movementY)
+                        },
+                        onTriggerBot = { isFiring ->
+                                viewModel.input.injectTriggerBot(isFiring)
+                        },
+                        // FIX: tell StreamInput to zero and deactivate the right stick whenever
+                        // the pose tracker loses its target, so the camera stops moving.
+                        onResetMovement = {
+                                viewModel.input.resetPoseTrackerMovement()
                         }
-                })
+                )
                 poseTrackerManager?.initialize()
 
                 binding.poseTrackerToggleButton.visibility = View.VISIBLE
@@ -282,23 +288,30 @@ class StreamActivity : AppCompatActivity(), View.OnSystemUiVisibilityChangeListe
                 if (!isCapturingFrames) return
                 poseTrackerHandler?.postDelayed({
                         if (isCapturingFrames && !isPendingCapture) {
-                                captureFrame()
+                                // FIX: post the actual capture to the main thread so that
+                                // surfaceView.width/height are read on the UI thread.
+                                // Previously this was called directly from poseTrackerHandler,
+                                // causing silent PixelCopy failures due to off-thread View access.
+                                mainHandler.post { captureFrame() }
                         }
                         scheduleNextCapture()
                 }, FRAME_CAPTURE_INTERVAL_MS)
         }
         
+        // Must be called on the main thread (accesses View dimensions and PixelCopy).
         private fun captureFrame()
         {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
                 if (isPendingCapture) return
                 
                 val surfaceView = binding.surfaceView
-                if (surfaceView.width <= 0 || surfaceView.height <= 0) return
+                val w = surfaceView.width
+                val h = surfaceView.height
+                if (w <= 0 || h <= 0) return
                 
                 isPendingCapture = true
                 
-                val bitmap = Bitmap.createBitmap(surfaceView.width, surfaceView.height, Bitmap.Config.ARGB_8888)
+                val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                 
                 try {
                         PixelCopy.request(

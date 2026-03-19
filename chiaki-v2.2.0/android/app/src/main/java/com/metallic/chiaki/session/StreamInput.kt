@@ -61,7 +61,8 @@ class StreamInput(val context: Context, val preferences: Preferences)
         private val motionControllerState = ControllerState() // from MotionEvents
         private val poseTrackerControllerState = ControllerState() // from PoseTracker AI
         private val poseTrackerSensitivity = 1.0f
-        private var poseTrackerActive = false
+        // FIX: @Volatile so writes from any thread are immediately visible to the controllerState getter
+        @Volatile private var poseTrackerActive = false
         var touchControllerState = ControllerState()
                 set(value)
                 {

@@ -3,6 +3,9 @@
 package com.metallic.chiaki.posetracker
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.PointF
 import android.graphics.RectF
 import com.google.mlkit.vision.common.InputImage
@@ -12,6 +15,7 @@ import com.google.mlkit.vision.pose.PoseDetector
 import com.google.mlkit.vision.pose.PoseLandmark
 import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.math.hypot
 
 interface PoseDetectorListener {
@@ -26,7 +30,14 @@ class PoseDetectorHelper(
     private var poseDetector: PoseDetector? = null
     private val executor = Executors.newSingleThreadExecutor()
     private var isInitialized = false
+
+    // FIX: @Volatile makes isProcessing writes visible to all threads immediately
+    @Volatile
     private var isProcessing = false
+
+    companion object {
+        private const val EXECUTOR_SHUTDOWN_TIMEOUT_MS = 500L
+    }
 
     fun initialize() {
         executor.execute {
@@ -42,7 +53,7 @@ class PoseDetectorHelper(
             }
         }
     }
-    
+
     fun updateConfig(newConfig: PoseTrackerConfig) {
         config = newConfig
     }
@@ -57,7 +68,7 @@ class PoseDetectorHelper(
 
         val bitmapCopy = bitmap.copy(Bitmap.Config.ARGB_8888, false)
         bitmap.recycle()
-        
+
         if (bitmapCopy == null) {
             isProcessing = false
             return
@@ -65,7 +76,6 @@ class PoseDetectorHelper(
 
         executor.execute {
             try {
-                // Apply HUD mask if enabled
                 val maskedBitmap = if (config.maskEnabled) {
                     applyMask(bitmapCopy)
                 } else {
@@ -73,24 +83,32 @@ class PoseDetectorHelper(
                 }
 
                 val inputImage = InputImage.fromBitmap(maskedBitmap, 0)
-                
+
                 poseDetector?.process(inputImage)
                     ?.addOnSuccessListener { pose ->
-                        val bestPose = findBestFocusPoint(pose, bitmapCopy, videoRect)
+                        // FIX: pass maskedBitmap to findBestFocusPoint so landmark coordinates
+                        // match the image that was actually fed to the detector.
+                        // Also avoid using bitmapCopy after it may have been recycled below.
+                        val bestPose = findBestFocusPoint(pose, maskedBitmap, videoRect)
                         listener.onPoseDetected(bestPose)
-                        if (maskedBitmap != bitmapCopy) maskedBitmap.recycle()
+
+                        // FIX: only recycle maskedBitmap separately when it is a different object;
+                        // bitmapCopy is recycled unconditionally afterwards exactly once.
+                        if (maskedBitmap !== bitmapCopy) maskedBitmap.recycle()
                         bitmapCopy.recycle()
                         isProcessing = false
                     }
                     ?.addOnFailureListener { e ->
                         listener.onError("Pose detection error: ${e.message}")
-                        if (maskedBitmap != bitmapCopy) maskedBitmap.recycle()
+                        if (maskedBitmap !== bitmapCopy) maskedBitmap.recycle()
                         bitmapCopy.recycle()
                         isProcessing = false
                     }
             } catch (e: Exception) {
                 listener.onError("Pose detection error: ${e.message}")
-                bitmapCopy.recycle()
+                // FIX: bitmapCopy is guaranteed to still exist here (maskedBitmap is local and
+                // may not have been assigned yet), so only recycle what we know is valid.
+                if (!bitmapCopy.isRecycled) bitmapCopy.recycle()
                 isProcessing = false
             }
         }
@@ -98,14 +116,13 @@ class PoseDetectorHelper(
 
     private fun applyMask(bitmap: Bitmap): Bitmap {
         val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas = android.graphics.Canvas(mutableBitmap)
-        val paint = android.graphics.Paint().apply {
-            color = android.graphics.Color.BLACK
-            style = android.graphics.Paint.Style.FILL
+        val canvas = Canvas(mutableBitmap)
+        val paint = Paint().apply {
+            color = Color.BLACK
+            style = Paint.Style.FILL
         }
 
-        // Mask the HUD area to prevent false positives
-        val maskRect = android.graphics.RectF(
+        val maskRect = RectF(
             bitmap.width * config.maskX,
             bitmap.height * config.maskY,
             bitmap.width * (config.maskX + config.maskWidth),
@@ -136,12 +153,11 @@ class PoseDetectorHelper(
         val scaleX = videoRect.width() / bitmap.width
         val scaleY = videoRect.height() / bitmap.height
 
-        // Calculate bounding box from valid landmarks
         for (landmark in landmarks) {
             if (landmark.inFrameLikelihood >= config.confidence) {
                 val screenX = videoRect.left + landmark.position.x * scaleX
                 val screenY = videoRect.top + landmark.position.y * scaleY
-                
+
                 minX = minOf(minX, screenX)
                 minY = minOf(minY, screenY)
                 maxX = maxOf(maxX, screenX)
@@ -150,14 +166,11 @@ class PoseDetectorHelper(
             }
         }
 
-        // Need at least 5 valid landmarks
         if (validLandmarks < 5) return null
 
         val boundingBox = RectF(minX, minY, maxX, maxY)
-        
-        // Calculate focus point based on headshot mode
+
         val focusPoint = if (config.headShotMode) {
-            // Try to use nose landmark for headshot
             val nose = pose.getPoseLandmark(PoseLandmark.NOSE)
             if (nose != null && nose.inFrameLikelihood >= config.confidence) {
                 PointF(
@@ -165,22 +178,17 @@ class PoseDetectorHelper(
                     videoRect.top + nose.position.y * scaleY
                 )
             } else {
-                // Fallback: top of bounding box with offset
                 PointF(
                     boundingBox.centerX(),
                     boundingBox.top + boundingBox.height() * config.headOffsetY
                 )
             }
         } else {
-            // Center mass targeting
             PointF(boundingBox.centerX(), boundingBox.centerY())
         }
 
-        // FOV FILTERING: Only return pose if focus point is within FOV radius
         val distance = hypot(focusPoint.x - centerX, focusPoint.y - centerY)
-        if (distance > config.fovRadius) {
-            return null // Target outside FOV - ignore
-        }
+        if (distance > config.fovRadius) return null
 
         return DetectedPose(
             boundingBox = boundingBox,
@@ -190,11 +198,16 @@ class PoseDetectorHelper(
     }
 
     fun close() {
-        executor.execute {
-            poseDetector?.close()
-            poseDetector = null
-            isInitialized = false
+        // FIX: shutdownNow + awaitTermination for a clean, timely shutdown
+        executor.shutdownNow()
+        try {
+            executor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
         }
-        executor.shutdown()
+        poseDetector?.close()
+        poseDetector = null
+        isInitialized = false
+        isProcessing = false
     }
 }

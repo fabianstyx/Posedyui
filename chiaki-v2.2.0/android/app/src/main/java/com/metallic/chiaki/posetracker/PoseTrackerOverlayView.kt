@@ -3,7 +3,13 @@
 package com.metallic.chiaki.posetracker
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.DashPathEffect
+import android.graphics.Paint
+import android.graphics.PointF
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.util.AttributeSet
 import android.view.View
 
@@ -20,94 +26,92 @@ class PoseTrackerOverlayView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private var config = PoseTrackerConfig()
-    
+
     private var currentPose: DetectedPose? = null
     private var videoRect: RectF = RectF()
     private var isTrackingEnabled = false
-    
-    // Bounding box paint
-    private val boxPaint = Paint().apply {
+
+    // FIX: all Paint objects are allocated once as fields, NOT inside onDraw().
+    // Creating Paint instances on every draw call causes excessive GC pressure and
+    // jank on the UI thread — especially at 30-60 fps.
+
+    private val boxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.RED
         style = Paint.Style.STROKE
         strokeWidth = 4f
-        isAntiAlias = true
     }
-    
-    // FOV circle paint
-    private val focusCirclePaint = Paint().apply {
-        color = Color.argb(102, 255, 255, 255) // 40% opacity white
+
+    private val focusCirclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(102, 255, 255, 255)
         style = Paint.Style.STROKE
         strokeWidth = 2f
-        isAntiAlias = true
     }
-    
-    // HUD mask paint
-    private val maskPaint = Paint().apply {
-        color = Color.argb(38, 255, 255, 255) // 15% opacity white
+
+    private val maskPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(38, 255, 255, 255)
         style = Paint.Style.FILL
-        isAntiAlias = true
     }
-    
-    // Focus label paint
-    private val labelPaint = Paint().apply {
+
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.RED
         textSize = 40f
         textAlign = Paint.Align.CENTER
-        isAntiAlias = true
         typeface = Typeface.DEFAULT_BOLD
     }
-    
-    // Crosshair paint
-    private val crosshairPaint = Paint().apply {
-        color = Color.argb(180, 0, 255, 0) // Green crosshair
+
+    private val crosshairPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(180, 0, 255, 0)
         style = Paint.Style.STROKE
         strokeWidth = 2f
-        isAntiAlias = true
     }
-    
-    // Target dot paint
-    private val targetDotPaint = Paint().apply {
+
+    private val targetDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.RED
         style = Paint.Style.FILL
-        isAntiAlias = true
+    }
+
+    // FIX: line paint also allocated once; DashPathEffect is immutable so it is safe to reuse
+    private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(100, 255, 0, 0)
+        style = Paint.Style.STROKE
+        strokeWidth = 1f
+        pathEffect = DashPathEffect(floatArrayOf(10f, 5f), 0f)
     }
 
     fun setConfig(newConfig: PoseTrackerConfig) {
         config = newConfig.copy()
         invalidate()
     }
-    
+
     fun setVideoRect(rect: RectF) {
         videoRect = rect
         invalidate()
     }
-    
+
     fun setDetectedPose(pose: DetectedPose?) {
         currentPose = pose
         invalidate()
     }
-    
+
     fun setTrackingEnabled(enabled: Boolean) {
         isTrackingEnabled = enabled
         invalidate()
     }
-    
+
     fun isTrackingEnabled(): Boolean = isTrackingEnabled
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        
+
         if (videoRect.width() == 0f) return
-        
+
         val centerX = videoRect.centerX()
         val centerY = videoRect.centerY()
-        
-        // Draw FOV circle (always show when enabled for context)
+
         if (config.showFocusCircle && isTrackingEnabled && config.enableVisualAssist) {
             canvas.drawCircle(centerX, centerY, config.fovRadius, focusCirclePaint)
         }
-        
-        // Draw HUD mask area for debugging
+
         if (config.maskEnabled && config.showMask && isTrackingEnabled) {
             val maskRect = RectF(
                 videoRect.left + videoRect.width() * config.maskX,
@@ -117,17 +121,14 @@ class PoseTrackerOverlayView @JvmOverloads constructor(
             )
             canvas.drawRect(maskRect, maskPaint)
         }
-        
-        // Draw detected pose
+
         if (config.enableVisualAssist && isTrackingEnabled && currentPose != null) {
             val pose = currentPose!!
-            
-            // Draw bounding box
+
             if (config.showBoundingBox) {
                 canvas.drawRect(pose.boundingBox, boxPaint)
             }
-            
-            // Draw focus label
+
             if (config.showFocusLabel) {
                 canvas.drawText(
                     "focus",
@@ -136,27 +137,24 @@ class PoseTrackerOverlayView @JvmOverloads constructor(
                     labelPaint
                 )
             }
-            
-            // Draw target dot at focus point
+
             canvas.drawCircle(pose.focusPoint.x, pose.focusPoint.y, 6f, targetDotPaint)
-            
-            // Draw line from center to target
-            val lineAlpha = 100
-            val linePaint = Paint().apply {
-                color = Color.argb(lineAlpha, 255, 0, 0)
-                style = Paint.Style.STROKE
-                strokeWidth = 1f
-                isAntiAlias = true
-                pathEffect = DashPathEffect(floatArrayOf(10f, 5f), 0f)
-            }
+
             canvas.drawLine(centerX, centerY, pose.focusPoint.x, pose.focusPoint.y, linePaint)
         }
-        
-        // Draw crosshair at center (always visible when tracking)
+
         if (isTrackingEnabled && config.enableVisualAssist) {
             val crosshairSize = 15f
-            canvas.drawLine(centerX - crosshairSize, centerY, centerX + crosshairSize, centerY, crosshairPaint)
-            canvas.drawLine(centerX, centerY - crosshairSize, centerX, centerY + crosshairSize, crosshairPaint)
+            canvas.drawLine(
+                centerX - crosshairSize, centerY,
+                centerX + crosshairSize, centerY,
+                crosshairPaint
+            )
+            canvas.drawLine(
+                centerX, centerY - crosshairSize,
+                centerX, centerY + crosshairSize,
+                crosshairPaint
+            )
         }
     }
 }
