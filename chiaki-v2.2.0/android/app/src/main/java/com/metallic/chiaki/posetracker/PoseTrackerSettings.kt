@@ -10,43 +10,44 @@ class PoseTrackerSettings(context: Context) {
     private val prefs = PreferenceManager.getDefaultSharedPreferences(context)
 
     companion object {
-        // Core settings keys — must match preferences.xml keys
+        // Core
         const val KEY_ENABLED = "pose_tracker_enabled"
         const val KEY_DETECTOR_TYPE = "pose_tracker_detector_type"
         const val KEY_CONFIDENCE = "pose_tracker_confidence"
         const val KEY_FOV_RADIUS = "pose_tracker_fov"
         const val KEY_DEBUG_MODE = "pose_tracker_debug_mode"
 
-        // Visual settings keys
+        // Visual
         const val KEY_VISUAL_ASSIST = "pose_tracker_visual_assist"
         const val KEY_SHOW_FOCUS_CIRCLE = "pose_tracker_show_focus_circle"
         const val KEY_SHOW_BOUNDING_BOX = "pose_tracker_show_bounding_box"
         const val KEY_SHOW_FOCUS_LABEL = "pose_tracker_show_focus_label"
 
-        // TriggerBot settings keys
+        // TriggerBot
         const val KEY_TRIGGERBOT_ENABLED = "pose_tracker_triggerbot_enabled"
         const val KEY_TRIGGERBOT_DELAY = "pose_tracker_triggerbot_delay"
         const val KEY_TRIGGERBOT_HOLD_TIME = "pose_tracker_triggerbot_hold"
         const val KEY_AUTO_FIRE_ENABLED = "pose_tracker_autofire_enabled"
         const val KEY_AUTO_FIRE_RATE = "pose_tracker_autofire_rate"
 
-        // Aim settings keys
+        // Aim
         const val KEY_AIM_SMOOTHING = "pose_tracker_aim_smoothing"
         const val KEY_AIM_SPEED = "pose_tracker_aim_speed"
         const val KEY_AIM_ASSIST_STRENGTH = "pose_tracker_aim_assist_strength"
         const val KEY_SNAP_TO_TARGET = "pose_tracker_snap_to_target"
         const val KEY_SNAP_THRESHOLD = "pose_tracker_snap_threshold"
+        const val KEY_SMOOTHING_MODE = "pose_tracker_smoothing_mode"
 
-        // Activation settings keys
+        // Activation
         const val KEY_ACTIVATION_MODE = "pose_tracker_activation_mode"
         const val KEY_CONTROLLER_BUTTON = "pose_tracker_controller_button"
 
-        // Target priority keys
+        // Target
         const val KEY_TARGET_PRIORITY = "pose_tracker_target_priority"
         const val KEY_HEADSHOT_MODE = "pose_tracker_headshot_mode"
         const val KEY_HEAD_OFFSET_Y = "pose_tracker_head_offset"
 
-        // Mask settings keys
+        // Mask
         const val KEY_MASK_ENABLED = "pose_tracker_mask_enabled"
         const val KEY_SHOW_MASK = "pose_tracker_show_mask"
         const val KEY_MASK_X = "pose_tracker_mask_x"
@@ -54,20 +55,26 @@ class PoseTrackerSettings(context: Context) {
         const val KEY_MASK_WIDTH = "pose_tracker_mask_width"
         const val KEY_MASK_HEIGHT = "pose_tracker_mask_height"
 
-        // Advanced settings keys
+        // Advanced
         const val KEY_PROCESSING_INTERVAL = "pose_tracker_processing_interval"
         const val KEY_MAX_TARGETS = "pose_tracker_max_targets"
         const val KEY_PREDICTIVE_AIMING = "pose_tracker_predictive_aiming"
         const val KEY_PREDICTION_STRENGTH = "pose_tracker_prediction_strength"
 
-        // Default ordinal index for DetectorType (YOLO_OBJECT = 1)
+        // Adaptive confidence
+        const val KEY_ADAPTIVE_CONFIDENCE = "pose_tracker_adaptive_confidence"
+        const val KEY_ADAPTIVE_CONFIDENCE_MIN = "pose_tracker_adaptive_confidence_min"
+
+        // Custom model
+        const val KEY_CUSTOM_MODEL_PATH = "pose_tracker_custom_model_path"
+        const val KEY_CUSTOM_MODEL_INPUT_SIZE = "pose_tracker_custom_model_input_size"
+
         private const val DEFAULT_DETECTOR_TYPE_ORDINAL = 1
     }
 
     fun loadConfig(): PoseTrackerConfig {
         return PoseTrackerConfig(
             isEnabled = prefs.getBoolean(KEY_ENABLED, false),
-            // FIX: enumValues<>() is the non-deprecated replacement for Enum.values()
             detectorType = safeEnumFromOrdinal<DetectorType>(
                 prefs.getString(KEY_DETECTOR_TYPE, DEFAULT_DETECTOR_TYPE_ORDINAL.toString()),
                 DEFAULT_DETECTOR_TYPE_ORDINAL
@@ -92,6 +99,10 @@ class PoseTrackerSettings(context: Context) {
             aimAssistStrength = prefs.getInt(KEY_AIM_ASSIST_STRENGTH, 80) / 100f,
             snapToTarget = prefs.getBoolean(KEY_SNAP_TO_TARGET, false),
             snapThreshold = prefs.getInt(KEY_SNAP_THRESHOLD, 50).toFloat(),
+            smoothingMode = safeEnumFromOrdinal<SmoothingMode>(
+                prefs.getString(KEY_SMOOTHING_MODE, "1"), // EASE_OUT by default
+                1
+            ),
 
             activationMode = safeEnumFromOrdinal<ActivationMode>(
                 prefs.getString(KEY_ACTIVATION_MODE, "0"),
@@ -119,7 +130,14 @@ class PoseTrackerSettings(context: Context) {
             processingInterval = prefs.getInt(KEY_PROCESSING_INTERVAL, 33),
             maxTargets = prefs.getInt(KEY_MAX_TARGETS, 5),
             predictiveAiming = prefs.getBoolean(KEY_PREDICTIVE_AIMING, false),
-            predictionStrength = prefs.getInt(KEY_PREDICTION_STRENGTH, 30) / 100f
+            predictionStrength = prefs.getInt(KEY_PREDICTION_STRENGTH, 30) / 100f,
+
+            adaptiveConfidence = prefs.getBoolean(KEY_ADAPTIVE_CONFIDENCE, true),
+            adaptiveConfidenceMin = prefs.getInt(KEY_ADAPTIVE_CONFIDENCE_MIN, 18) / 100f,
+
+            customModelPath = prefs.getString(KEY_CUSTOM_MODEL_PATH, null)
+                ?.takeIf { it.isNotBlank() },
+            customModelInputSize = prefs.getInt(KEY_CUSTOM_MODEL_INPUT_SIZE, 640)
         )
     }
 
@@ -147,6 +165,7 @@ class PoseTrackerSettings(context: Context) {
             putInt(KEY_AIM_ASSIST_STRENGTH, (config.aimAssistStrength * 100).toInt())
             putBoolean(KEY_SNAP_TO_TARGET, config.snapToTarget)
             putInt(KEY_SNAP_THRESHOLD, config.snapThreshold.toInt())
+            putString(KEY_SMOOTHING_MODE, config.smoothingMode.ordinal.toString())
 
             putString(KEY_ACTIVATION_MODE, config.activationMode.ordinal.toString())
             putString(KEY_CONTROLLER_BUTTON, config.controllerActivationButton.ordinal.toString())
@@ -167,13 +186,26 @@ class PoseTrackerSettings(context: Context) {
             putBoolean(KEY_PREDICTIVE_AIMING, config.predictiveAiming)
             putInt(KEY_PREDICTION_STRENGTH, (config.predictionStrength * 100).toInt())
 
+            putBoolean(KEY_ADAPTIVE_CONFIDENCE, config.adaptiveConfidence)
+            putInt(KEY_ADAPTIVE_CONFIDENCE_MIN, (config.adaptiveConfidenceMin * 100).toInt())
+
+            putString(KEY_CUSTOM_MODEL_PATH, config.customModelPath ?: "")
+            putInt(KEY_CUSTOM_MODEL_INPUT_SIZE, config.customModelInputSize)
+
             apply()
         }
     }
 
+    /** Save only the custom model path without touching other settings. */
+    fun saveCustomModelPath(path: String?, inputSize: Int = 640) {
+        prefs.edit()
+            .putString(KEY_CUSTOM_MODEL_PATH, path ?: "")
+            .putInt(KEY_CUSTOM_MODEL_INPUT_SIZE, inputSize)
+            .apply()
+    }
+
     fun isEnabled(): Boolean = prefs.getBoolean(KEY_ENABLED, false)
 
-    // FIX: replaces deprecated Enum.values()[index] with enumValues<T>() and adds safe bounds check
     private inline fun <reified T : Enum<T>> safeEnumFromOrdinal(
         ordinalStr: String?,
         default: Int
