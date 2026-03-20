@@ -23,7 +23,7 @@ android {
         applicationId "com.metallic.chiaki"
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 15  // Actualizado para tu v15 Posedyui
+        versionCode 16  // Actualizado para tu v15 Posedyui
         versionName chiakiVersion
         externalNativeBuild {
             cmake {
