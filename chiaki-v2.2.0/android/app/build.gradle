@@ -23,7 +23,7 @@ android {
         applicationId "com.metallic.chiaki"
         minSdkVersion 21
         targetSdkVersion 33
-versionCode 13
+        versionCode 15  // Actualizado para tu v15 Posedyui
         versionName chiakiVersion
         externalNativeBuild {
             cmake {
@@ -55,33 +55,34 @@ versionCode 13
             path rootCMakeLists
         }
     }
+
     signingConfigs {
         release
     }
+
     buildTypes {
         release {
-            minifyEnabled true
+            minifyEnabled false // Evitamos que ProGuard rompa la lógica de Luau
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
-
-    Properties properties = new Properties()
-    def propertiesFile = file("../local.properties")
-    if (propertiesFile.exists()) {
-        properties.load(propertiesFile.newDataInputStream())
-    }
-
-        if(properties.containsKey("chiakiKeystore")) {
-        println("Enabling Local Signing")
+    // --- CONFIGURACIÓN DE FIRMA SEGURA POSEDYUI ---
+    // GitHub/SourceHut inyectarán estas variables desde sus Secrets
+    if (System.getenv("POSEDY_KEYSTOR3_PW") != null) {
+        println("Enabling Secure Signing for Posedyui")
         buildTypes.release.signingConfig = signingConfigs.release
         buildTypes.debug.signingConfig = signingConfigs.release
-        signingConfigs.release.storeFile = file(properties.get("chiakiKeystore"))
-        signingConfigs.release.storePassword = properties.get("chiakiKeystorePW")
-        signingConfigs.release.keyAlias = properties.get("chiakiKeyAlias")
-        signingConfigs.release.keyPassword = properties.get("chiakiKeyPW")
+        
+        // Ruta donde el servidor de build coloca tu archivo .jks
+        signingConfigs.release.storeFile = file("/home/build/my-release-key.jks")
+        
+        // Usamos tus nuevos nombres de secretos
+        signingConfigs.release.storePassword = System.getenv("POSEDY_KEYSTOR3_PW")
+        signingConfigs.release.keyAlias = System.getenv("POSEDY_KEY_ALIAS")
+        signingConfigs.release.keyPassword = System.getenv("POSEDY_KEY_PW")
     } else {
-        println("Signing not enabled")
+        println("Signing not enabled: Secrets (POSEDY_*) not found in environment")
     }
 }
 
@@ -114,15 +115,10 @@ dependencies {
     implementation "com.squareup.moshi:moshi:1.14.0"
     kapt "com.squareup.moshi:moshi-kotlin-codegen:1.14.0"
 
-    // ML Kit Pose Detection (PoseTracker integration)
     implementation 'com.google.mlkit:pose-detection:18.0.0-beta3'
     implementation 'com.google.mlkit:pose-detection-accurate:18.0.0-beta3'
-    
-    // TensorFlow Lite for YOLO detection
     implementation 'org.tensorflow:tensorflow-lite:2.13.0'
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.13.0'
-    // Required: provides GpuDelegateFactory.Options (supertype of GpuDelegate.Options).
-    // Without this, the Kotlin compiler cannot resolve GpuDelegate.Options and the build fails.
     implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4'
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 }

@@ -11,6 +11,7 @@ artifacts:
 - Chiaki.aab
 
 secrets:
+- a64b6931-e57a-4cc7-9b2f-f0d35e91df27  # Tu nueva llave .jks
 - 163950ff-2ac4-423d-a280-d2d9edbef000
 - f4bce41f-f96b-4633-80d8-0ff5dd74dc2a
 
@@ -22,6 +23,9 @@ tasks:
     sudo docker run \
       -v /home/build:/home/build \
       -u $(id -u):$(id -g) \
+      -e POSEDY_KEYSTOR3_PW="${POSEDY_KEYSTOR3_PW}" \
+      -e POSEDY_KEY_ALIAS="${POSEDY_KEY_ALIAS}" \
+      -e POSEDY_KEY_PW="${POSEDY_KEY_PW}" \
       thestr4ng3r/android:90d826e \
       /bin/bash -c "cd /home/build/chiaki/android && ./gradlew assembleRelease bundleRelease"
     cp chiaki/android/app/build/outputs/apk/release/app-release*.apk Chiaki.apk
