@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build and Sign Android APK
 
 on:
   push:
@@ -18,19 +18,14 @@ jobs:
     - name: Clone submodules manually
       run: |
         cd chiaki-v2.2.0
-        
         # Clone nanopb
         git clone --depth 1 https://github.com/nanopb/nanopb.git third-party/nanopb
-        
         # Clone jerasure
         git clone --depth 1 https://git.sr.ht/~thestr4ng3r/jerasure third-party/jerasure
-        
         # Clone gf-complete
         git clone --depth 1 https://git.sr.ht/~thestr4ng3r/gf-complete third-party/gf-complete
-        
         # Clone oboe
         git clone --depth 1 https://github.com/google/oboe android/app/src/main/cpp/oboe
-        
         # Clone munit (for tests)
         git clone --depth 1 https://github.com/nemequ/munit.git test/munit
     
@@ -45,9 +40,6 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-    
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
     
     - name: Setup Android NDK
       uses: nttld/setup-ndk@v1
@@ -68,13 +60,25 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x chiaki-v2.2.0/android/gradlew
     
-    - name: Build APK with Gradle
+    - name: Build Release APK
       working-directory: chiaki-v2.2.0/android
-      run: ./gradlew assembleDebug --no-daemon
+      run: ./gradlew assembleRelease --no-daemon
+
+    - name: Sign APK
+      uses: r0adkll/sign-android-release@v1
+      id: sign_app
+      with:
+        releaseDirectory: chiaki-v2.2.0/android/app/build/outputs/apk/release
+        signingKeyBase64: ${{ secrets.KEYSTORE_FILE }}
+        alias: ${{ secrets.POSEDY_KEY_ALIAS }}
+        keyStorePassword: ${{ secrets.POSEDY_KEYSTORE_PW }}
+        keyPassword: ${{ secrets.POSEDY_KEY_PW }}
+      env:
+        BUILD_TOOLS_VERSION: "34.0.0"
     
-    - name: Upload APK artifact
+    - name: Upload Signed APK
       uses: actions/upload-artifact@v4
       with:
-        name: chiaki-posetracker-apk
-        path: chiaki-v2.2.0/android/app/build/outputs/apk/debug/*.apk
+        name: chiaki-modded
+        path: ${{ steps.sign_app.outputs.signedReleaseFile }}
         retention-days: 30
